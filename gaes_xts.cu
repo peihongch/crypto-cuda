@@ -468,7 +468,7 @@ __global__ void xts_encrypt(uint8_t* key,
     aes_set_key(tweak_ctx, key + (key_len / 2) / sizeof(uint8_t), key_len / 2);
 
     /* calculate first value of T */
-    *((uint64_t*)tweak_buf) = tweak + threadIdx.x;
+    *((uint64_t*)tweak_buf) = tweak + blockIdx.x;
     *(((uint64_t*)tweak_buf) + 1) = 0;
     aes_encrypt(tweak_ctx, tweak_buf, tweak_buf);
 
@@ -510,7 +510,7 @@ __global__ void xts_decrypt(uint8_t* key,
     aes_set_key(tweak_ctx, key + (key_len / 2) / sizeof(uint8_t), key_len / 2);
 
     /* calculate first value of T */
-    *((uint64_t*)tweak_buf) = tweak + threadIdx.x;
+    *((uint64_t*)tweak_buf) = tweak + blockIdx.x;
     *(((uint64_t*)tweak_buf) + 1) = 0;
     aes_encrypt(tweak_ctx, tweak_buf, tweak_buf);
 
