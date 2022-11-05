@@ -19,4 +19,4 @@ hmac: hmac.c usha
 	gcc -c hmac.c
 
 clean: 
-	rm -rf *.o
+	rm -rf shatest *.o

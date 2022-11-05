@@ -4,3 +4,7 @@
 *.ptx
 *.cubin
 *.fatbin
+*.o
+hash/shatest
+ghmac_sha
+gaes_xts
