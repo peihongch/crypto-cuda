@@ -1,7 +1,8 @@
-all: shatest
+# all: shatest
+all: sha1 sha224-256 sha384-512 hmac usha
 
-shatest: shatest.c sha1 sha224-256 sha384-512 hmac usha
-	gcc -o shatest shatest.c sha1.o sha224-256.o sha384-512.o hmac.o usha.o
+# shatest: shatest.c sha1 sha224-256 sha384-512 hmac usha
+# 	gcc -o shatest shatest.c sha1.o sha224-256.o sha384-512.o hmac.o usha.o
 
 sha1: sha1.c
 	gcc -c sha1.c

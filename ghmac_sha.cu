@@ -1,55 +1,56 @@
-// #include <cuda.h>
-// #include <cuda_runtime.h>
+#include <cuda.h>
+#include <cuda_runtime.h>
+#include <stdio.h>
 #include "hash/sha.h"
 
-int HMAC_SHA1(const unsigned char* text,
-              int text_len,
-              const unsigned char* key,
-              int key_len,
-              uint8_t digest[USHAMaxHashSize]) {
+__global__ void HMAC_SHA1(const unsigned char* text,
+                          int text_len,
+                          const unsigned char* key,
+                          int key_len,
+                          uint8_t digest[USHAMaxHashSize]) {
     HMACContext ctx;
-    return hmacReset(&ctx, SHA1, key, key_len) ||
-           hmacInput(&ctx, text, text_len) || hmacResult(&ctx, digest);
+    hmacReset(&ctx, SHA1, key, key_len) || hmacInput(&ctx, text, text_len) ||
+        hmacResult(&ctx, digest);
 }
 
-int HMAC_SHA224(const unsigned char* text,
-                int text_len,
-                const unsigned char* key,
-                int key_len,
-                uint8_t digest[USHAMaxHashSize]) {
+__global__ void HMAC_SHA224(const unsigned char* text,
+                            int text_len,
+                            const unsigned char* key,
+                            int key_len,
+                            uint8_t digest[USHAMaxHashSize]) {
     HMACContext ctx;
-    return hmacReset(&ctx, SHA224, key, key_len) ||
-           hmacInput(&ctx, text, text_len) || hmacResult(&ctx, digest);
+    hmacReset(&ctx, SHA224, key, key_len) || hmacInput(&ctx, text, text_len) ||
+        hmacResult(&ctx, digest);
 }
 
-int HMAC_SHA256(const unsigned char* text,
-                int text_len,
-                const unsigned char* key,
-                int key_len,
-                uint8_t digest[USHAMaxHashSize]) {
+__global__ void HMAC_SHA256(const unsigned char* text,
+                            int text_len,
+                            const unsigned char* key,
+                            int key_len,
+                            uint8_t digest[USHAMaxHashSize]) {
     HMACContext ctx;
-    return hmacReset(&ctx, SHA256, key, key_len) ||
-           hmacInput(&ctx, text, text_len) || hmacResult(&ctx, digest);
+    hmacReset(&ctx, SHA256, key, key_len) || hmacInput(&ctx, text, text_len) ||
+        hmacResult(&ctx, digest);
 }
 
-int HMAC_SHA384(const unsigned char* text,
-                int text_len,
-                const unsigned char* key,
-                int key_len,
-                uint8_t digest[USHAMaxHashSize]) {
+__global__ void HMAC_SHA384(const unsigned char* text,
+                            int text_len,
+                            const unsigned char* key,
+                            int key_len,
+                            uint8_t digest[USHAMaxHashSize]) {
     HMACContext ctx;
-    return hmacReset(&ctx, SHA384, key, key_len) ||
-           hmacInput(&ctx, text, text_len) || hmacResult(&ctx, digest);
+    hmacReset(&ctx, SHA384, key, key_len) || hmacInput(&ctx, text, text_len) ||
+        hmacResult(&ctx, digest);
 }
 
-int HMAC_SHA512(const unsigned char* text,
-                int text_len,
-                const unsigned char* key,
-                int key_len,
-                uint8_t digest[USHAMaxHashSize]) {
+__global__ void HMAC_SHA512(const unsigned char* text,
+                            int text_len,
+                            const unsigned char* key,
+                            int key_len,
+                            uint8_t digest[USHAMaxHashSize]) {
     HMACContext ctx;
-    return hmacReset(&ctx, SHA512, key, key_len) ||
-           hmacInput(&ctx, text, text_len) || hmacResult(&ctx, digest);
+    hmacReset(&ctx, SHA512, key, key_len) || hmacInput(&ctx, text, text_len) ||
+        hmacResult(&ctx, digest);
 }
 
 #define HMACTESTCOUNT 7
@@ -254,28 +255,31 @@ struct hmachash {
 
 static const char hexdigits[] = "0123456789ABCDEF";
 
-#include <stdio.h>
-
 int main(int argc, char const* argv[]) {
     int i;
     int hashno, hashnolow = 0, hashnohigh = HASHCOUNT - 1;
     int testno, testnolow = 0, testnohigh = HMACTESTCOUNT - 1;
-    const char* keyarray;
+    const unsigned char* keyarray;
+    unsigned char* dev_keyarray;
     int keylength;
-    const char* dataarray;
+    const unsigned char* dataarray;
+    unsigned char* dev_dataarray;
     int datalength;
-    const char* resultarray;
+    const unsigned char* resultarray;
     int resultlength;
-    char HMAC_Digest[USHAMaxHashSize];
+    unsigned char HMAC_Digest[USHAMaxHashSize];
+    unsigned char* dev_HMAC_Digest;
 
     for (testno = testnolow; testno <= testnohigh; ++testno) {
         printf("Test %d: \n", testno + 1);
         for (hashno = hashnolow; hashno <= hashnohigh; ++hashno) {
-            dataarray = hmactests[testno].dataarray[hashno]
-                            ? hmactests[testno].dataarray[hashno]
-                        : hmactests[testno].dataarray[1]
-                            ? hmactests[testno].dataarray[1]
-                            : hmactests[testno].dataarray[0];  // testarray
+            dataarray =
+                (const unsigned char*)(hmactests[testno].dataarray[hashno]
+                                           ? hmactests[testno].dataarray[hashno]
+                                       : hmactests[testno].dataarray[1]
+                                           ? hmactests[testno].dataarray[1]
+                                           : hmactests[testno]
+                                                 .dataarray[0]);  // testarray
             datalength = hmactests[testno].datalength[hashno]
                              ? hmactests[testno].datalength[hashno]
                          : hmactests[testno].datalength[1]
@@ -292,45 +296,61 @@ int main(int argc, char const* argv[]) {
                             ? hmactests[testno].keylength[hashno]
                         : hmactests[testno].keylength[1]
                             ? hmactests[testno].keylength[1]
-                            : hmactests[testno].keylength[0];     // keylen
-            resultarray = hmactests[testno].resultarray[hashno];  // resultarray
+                            : hmactests[testno].keylength[0];  // keylen
+            resultarray = (const unsigned char*)(hmactests[testno].resultarray
+                                                     [hashno]);  // resultarray
             resultlength =
                 hmactests[testno].resultlength[hashno];  // resultlength
+
+            cudaMalloc((void**)dev_keyarray, keylength);
+            cudaMalloc((void**)dev_dataarray, datalength);
+            cudaMalloc((void**)dev_HMAC_Digest, USHAMaxHashSize);
+            cudaMemcpy(dev_keyarray, keyarray, keylength,
+                       cudaMemcpyHostToDevice);
+            cudaMemcpy(dev_dataarray, dataarray, datalength,
+                       cudaMemcpyHostToDevice);
 
             switch (hashno) {
                 case 0:
                     printf("\tHMAC-SHA1 test: \n");
-                    HMAC_SHA1(dataarray, datalength, keyarray, keylength,
-                              HMAC_Digest);
+                    HMAC_SHA1<<<1, 1>>>(dev_dataarray, datalength, dev_keyarray,
+                                        keylength, dev_HMAC_Digest);
                     break;
 
                 case 1:
                     printf("\tHMAC-SHA224 test: \n");
-                    HMAC_SHA224(dataarray, datalength, keyarray, keylength,
-                                HMAC_Digest);
+                    HMAC_SHA224<<<1, 1>>>(dev_dataarray, datalength,
+                                          dev_keyarray, keylength,
+                                          dev_HMAC_Digest);
                     break;
 
                 case 2:
                     printf("\tHMAC-SHA256 test: \n");
-                    HMAC_SHA256(dataarray, datalength, keyarray, keylength,
-                                HMAC_Digest);
+                    HMAC_SHA256<<<1, 1>>>(dev_dataarray, datalength,
+                                          dev_keyarray, keylength,
+                                          dev_HMAC_Digest);
                     break;
 
                 case 3:
                     printf("\tHMAC-SHA384 test: \n");
-                    HMAC_SHA384(dataarray, datalength, keyarray, keylength,
-                                HMAC_Digest);
+                    HMAC_SHA384<<<1, 1>>>(dev_dataarray, datalength,
+                                          dev_keyarray, keylength,
+                                          dev_HMAC_Digest);
                     break;
 
                 case 4:
                     printf("\tHMAC-SHA512 test: \n");
-                    HMAC_SHA512(dataarray, datalength, keyarray, keylength,
-                                HMAC_Digest);
+                    HMAC_SHA512<<<1, 1>>>(dev_dataarray, datalength,
+                                          dev_keyarray, keylength,
+                                          dev_HMAC_Digest);
                     break;
 
                 default:
                     break;
             }
+
+            cudaMemcpy(HMAC_Digest, dev_HMAC_Digest, USHAMaxHashSize,
+                       cudaMemcpyDeviceToHost);
 
             printf("\t\texpect: ");
             for (i = 0; i < resultlength * 2; i++) {
