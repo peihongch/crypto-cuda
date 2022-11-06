@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include "hash/sha.h"
 
-__global__ void HMAC_SHA1(const unsigned char* text,
+__device__ void hmac_sha1(const unsigned char* text,
                           int text_len,
                           const unsigned char* key,
                           int key_len,
@@ -11,7 +11,7 @@ __global__ void HMAC_SHA1(const unsigned char* text,
         hmacResult(&ctx, digest);
 }
 
-__global__ void HMAC_SHA224(const unsigned char* text,
+__device__ void hmac_sha224(const unsigned char* text,
                             int text_len,
                             const unsigned char* key,
                             int key_len,
@@ -21,7 +21,7 @@ __global__ void HMAC_SHA224(const unsigned char* text,
         hmacResult(&ctx, digest);
 }
 
-__global__ void HMAC_SHA256(const unsigned char* text,
+__device__ void hmac_sha256(const unsigned char* text,
                             int text_len,
                             const unsigned char* key,
                             int key_len,
@@ -31,7 +31,7 @@ __global__ void HMAC_SHA256(const unsigned char* text,
         hmacResult(&ctx, digest);
 }
 
-__global__ void HMAC_SHA384(const unsigned char* text,
+__device__ void hmac_sha384(const unsigned char* text,
                             int text_len,
                             const unsigned char* key,
                             int key_len,
@@ -41,7 +41,7 @@ __global__ void HMAC_SHA384(const unsigned char* text,
         hmacResult(&ctx, digest);
 }
 
-__global__ void HMAC_SHA512(const unsigned char* text,
+__device__ void hmac_sha512(const unsigned char* text,
                             int text_len,
                             const unsigned char* key,
                             int key_len,
@@ -49,6 +49,48 @@ __global__ void HMAC_SHA512(const unsigned char* text,
     HMACContext ctx;
     hmacReset(&ctx, SHA512, key, key_len) || hmacInput(&ctx, text, text_len) ||
         hmacResult(&ctx, digest);
+}
+
+#ifndef GXTS_HMAC
+
+__global__ void global_hmac_sha1(const unsigned char* text,
+                                 int text_len,
+                                 const unsigned char* key,
+                                 int key_len,
+                                 uint8_t digest[USHAMaxHashSize]) {
+    hmac_sha1(text, text_len, key, key_len, digest);
+}
+
+__global__ void global_hmac_sha224(const unsigned char* text,
+                                   int text_len,
+                                   const unsigned char* key,
+                                   int key_len,
+                                   uint8_t digest[USHAMaxHashSize]) {
+    hmac_sha224(text, text_len, key, key_len, digest);
+}
+
+__global__ void global_hmac_sha256(const unsigned char* text,
+                                   int text_len,
+                                   const unsigned char* key,
+                                   int key_len,
+                                   uint8_t digest[USHAMaxHashSize]) {
+    hmac_sha256(text, text_len, key, key_len, digest);
+}
+
+__global__ void global_hmac_sha384(const unsigned char* text,
+                                   int text_len,
+                                   const unsigned char* key,
+                                   int key_len,
+                                   uint8_t digest[USHAMaxHashSize]) {
+    hmac_sha384(text, text_len, key, key_len, digest);
+}
+
+__global__ void global_hmac_sha512(const unsigned char* text,
+                                   int text_len,
+                                   const unsigned char* key,
+                                   int key_len,
+                                   uint8_t digest[USHAMaxHashSize]) {
+    hmac_sha512(text, text_len, key, key_len, digest);
 }
 
 #define HMACTESTCOUNT 7
@@ -332,36 +374,37 @@ int main(int argc, char const* argv[]) {
             switch (hashno) {
                 case 0:
                     printf("\tHMAC-SHA1 test: \n");
-                    HMAC_SHA1<<<1, 1>>>(dev_dataarray, datalength, dev_keyarray,
-                                        keylength, dev_HMAC_Digest);
+                    global_hmac_sha1<<<1, 1>>>(dev_dataarray, datalength,
+                                               dev_keyarray, keylength,
+                                               dev_HMAC_Digest);
                     break;
 
                 case 1:
                     printf("\tHMAC-SHA224 test: \n");
-                    HMAC_SHA224<<<1, 1>>>(dev_dataarray, datalength,
-                                          dev_keyarray, keylength,
-                                          dev_HMAC_Digest);
+                    global_hmac_sha224<<<1, 1>>>(dev_dataarray, datalength,
+                                                 dev_keyarray, keylength,
+                                                 dev_HMAC_Digest);
                     break;
 
                 case 2:
                     printf("\tHMAC-SHA256 test: \n");
-                    HMAC_SHA256<<<1, 1>>>(dev_dataarray, datalength,
-                                          dev_keyarray, keylength,
-                                          dev_HMAC_Digest);
+                    global_hmac_sha256<<<1, 1>>>(dev_dataarray, datalength,
+                                                 dev_keyarray, keylength,
+                                                 dev_HMAC_Digest);
                     break;
 
                 case 3:
                     printf("\tHMAC-SHA384 test: \n");
-                    HMAC_SHA384<<<1, 1>>>(dev_dataarray, datalength,
-                                          dev_keyarray, keylength,
-                                          dev_HMAC_Digest);
+                    global_hmac_sha384<<<1, 1>>>(dev_dataarray, datalength,
+                                                 dev_keyarray, keylength,
+                                                 dev_HMAC_Digest);
                     break;
 
                 case 4:
                     printf("\tHMAC-SHA512 test: \n");
-                    HMAC_SHA512<<<1, 1>>>(dev_dataarray, datalength,
-                                          dev_keyarray, keylength,
-                                          dev_HMAC_Digest);
+                    global_hmac_sha512<<<1, 1>>>(dev_dataarray, datalength,
+                                                 dev_keyarray, keylength,
+                                                 dev_HMAC_Digest);
                     break;
 
                 default:
@@ -392,3 +435,5 @@ int main(int argc, char const* argv[]) {
 
     return 0;
 }
+
+#endif

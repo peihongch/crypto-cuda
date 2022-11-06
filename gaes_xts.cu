@@ -76,7 +76,7 @@ __constant__ uint16_t gf128mul_table_bbe[256] = gf128mul_dat(xda_bbe);
 
 #define be128_xor(r, p, q) ((r)[0] = (p)[0] ^ (q)[0], (r)[1] = (p)[1] ^ (q)[1])
 
-__global__ void xts_encrypt(uint8_t* key,
+__device__ void xts_encrypt(uint8_t* key,
                             uint32_t key_len,
                             uint8_t* data,
                             const uint64_t tweak) {
@@ -102,7 +102,7 @@ __global__ void xts_encrypt(uint8_t* key,
     be128_xor((uint64_t*)data, (uint64_t*)data, tweak_buf);
 }
 
-__global__ void xts_decrypt(uint8_t* key,
+__device__ void xts_decrypt(uint8_t* key,
                             uint32_t key_len,
                             uint8_t* data,
                             const uint64_t tweak) {
@@ -126,6 +126,22 @@ __global__ void xts_decrypt(uint8_t* key,
     aes_decrypt(nrounds, key, data);
     /* C <- C xor CC */
     be128_xor((uint64_t*)data, (uint64_t*)data, tweak_buf);
+}
+
+#ifndef GXTS_HMAC
+
+__global__ void global_xts_encrypt(uint8_t* key,
+                                   uint32_t key_len,
+                                   uint8_t* data,
+                                   const uint64_t tweak) {
+    xts_encrypt(key, key_len, data, tweak);
+}
+
+__global__ void global_xts_decrypt(uint8_t* key,
+                                   uint32_t key_len,
+                                   uint8_t* data,
+                                   const uint64_t tweak) {
+    xts_decrypt(key, key_len, data, tweak);
 }
 
 int main(int argc, char const* argv[]) {
@@ -163,8 +179,8 @@ int main(int argc, char const* argv[]) {
             text[7], text[8], text[9], text[10], text[11], text[12], text[13],
             text[14], text[15]);
 
-        xts_encrypt<<<dimGrid, dimBlock>>>(dev_key, key_bit[i] * 2 / 8,
-                                           dev_text, 0);
+        global_xts_encrypt<<<dimGrid, dimBlock>>>(dev_key, key_bit[i] * 2 / 8,
+                                                  dev_text, 0);
         cudaMemcpy(text, dev_text, TEXT_SIZE, cudaMemcpyDeviceToHost);
         printf(
             "\tencrypt  :   0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x "
@@ -173,8 +189,8 @@ int main(int argc, char const* argv[]) {
             text[7], text[8], text[9], text[10], text[11], text[12], text[13],
             text[14], text[15]);
 
-        xts_decrypt<<<dimGrid, dimBlock>>>(dev_key, key_bit[i] * 2 / 8,
-                                           dev_text, 0);
+        global_xts_decrypt<<<dimGrid, dimBlock>>>(dev_key, key_bit[i] * 2 / 8,
+                                                  dev_text, 0);
         cudaMemcpy(text, dev_text, TEXT_SIZE, cudaMemcpyDeviceToHost);
         printf(
             "\tdecrypt  :   0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x "
@@ -185,3 +201,5 @@ int main(int argc, char const* argv[]) {
     }
     return 0;
 }
+
+#endif
