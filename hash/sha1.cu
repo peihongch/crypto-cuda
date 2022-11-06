@@ -45,7 +45,6 @@
 /*
  * add "length" to the length
  */
-static uint32_t addTemp;
 #define SHA1AddLength(context, length)                                         \
     (addTemp = (context)->Length_Low,                                          \
      (context)->Corrupted = (((context)->Length_Low += (length)) < addTemp) && \
@@ -54,9 +53,9 @@ static uint32_t addTemp;
                                 : 0)
 
 /* Local Function Prototypes */
-static void SHA1Finalize(SHA1Context* context, uint8_t Pad_Byte);
-static void SHA1PadMessage(SHA1Context*, uint8_t Pad_Byte);
-static void SHA1ProcessMessageBlock(SHA1Context*);
+__device__ static void SHA1Finalize(SHA1Context* context, uint8_t Pad_Byte);
+__device__ static void SHA1PadMessage(SHA1Context*, uint8_t Pad_Byte);
+__device__ static void SHA1ProcessMessageBlock(SHA1Context*);
 
 /*
  *  SHA1Reset
@@ -73,7 +72,7 @@ static void SHA1ProcessMessageBlock(SHA1Context*);
  *      sha Error Code.
  *
  */
-int SHA1Reset(SHA1Context* context) {
+__device__ int SHA1Reset(SHA1Context* context) {
     if (!context)
         return shaNull;
 
@@ -113,9 +112,11 @@ int SHA1Reset(SHA1Context* context) {
  *      sha Error Code.
  *
  */
-int SHA1Input(SHA1Context* context,
-              const uint8_t* message_array,
-              unsigned length) {
+__device__ int SHA1Input(SHA1Context* context,
+                         const uint8_t* message_array,
+                         unsigned length) {
+    static uint32_t addTemp;
+
     if (!length)
         return shaSuccess;
 
@@ -163,9 +164,10 @@ int SHA1Input(SHA1Context* context,
  * Returns:
  *   sha Error Code.
  */
-int SHA1FinalBits(SHA1Context* context,
-                  const uint8_t message_bits,
-                  unsigned int length) {
+__device__ int SHA1FinalBits(SHA1Context* context,
+                             const uint8_t message_bits,
+                             unsigned int length) {
+    static uint32_t addTemp;
     uint8_t masks[8] = {
         /* 0 0b00000000 */ 0x00, /* 1 0b10000000 */ 0x80,
         /* 2 0b11000000 */ 0xC0, /* 3 0b11100000 */ 0xE0,
@@ -217,7 +219,8 @@ int SHA1FinalBits(SHA1Context* context,
  *   sha Error Code.
  *
  */
-int SHA1Result(SHA1Context* context, uint8_t Message_Digest[SHA1HashSize]) {
+__device__ int SHA1Result(SHA1Context* context,
+                          uint8_t Message_Digest[SHA1HashSize]) {
     int i;
     if (!context || !Message_Digest)
         return shaNull;
@@ -254,7 +257,7 @@ int SHA1Result(SHA1Context* context, uint8_t Message_Digest[SHA1HashSize]) {
  *   sha Error Code.
  *
  */
-static void SHA1Finalize(SHA1Context* context, uint8_t Pad_Byte) {
+__device__ void SHA1Finalize(SHA1Context* context, uint8_t Pad_Byte) {
     int i;
     SHA1PadMessage(context, Pad_Byte);
     /* message may be sensitive, clear it out */
@@ -289,7 +292,7 @@ static void SHA1Finalize(SHA1Context* context, uint8_t Pad_Byte) {
  * Returns:
  *   Nothing.
  */
-static void SHA1PadMessage(SHA1Context* context, uint8_t Pad_Byte) {
+__device__ void SHA1PadMessage(SHA1Context* context, uint8_t Pad_Byte) {
     /*
      * Check to see if the current message block is too small to hold
      * the initial padding bits and length. If so, we will pad the
@@ -341,7 +344,7 @@ static void SHA1PadMessage(SHA1Context* context, uint8_t Pad_Byte) {
  *   single character names, were used because those were the
  *   names used in the publication.
  */
-static void SHA1ProcessMessageBlock(SHA1Context* context) {
+__device__ void SHA1ProcessMessageBlock(SHA1Context* context) {
     /* Constants defined in FIPS-180-2, section 4.2.1 */
     const uint32_t K[4] = {0x5A827999, 0x6ED9EBA1, 0x8F1BBCDC, 0xCA62C1D6};
     int t;                  /* Loop counter */

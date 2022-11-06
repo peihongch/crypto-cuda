@@ -1,5 +1,3 @@
-#include <cuda.h>
-#include <cuda_runtime.h>
 #include <stdio.h>
 #include "hash/sha.h"
 
@@ -257,6 +255,7 @@ static const char hexdigits[] = "0123456789ABCDEF";
 
 int main(int argc, char const* argv[]) {
     int i;
+    cudaError_t err;
     int hashno, hashnolow = 0, hashnohigh = HASHCOUNT - 1;
     int testno, testnolow = 0, testnohigh = HMACTESTCOUNT - 1;
     const unsigned char* keyarray;
@@ -302,13 +301,33 @@ int main(int argc, char const* argv[]) {
             resultlength =
                 hmactests[testno].resultlength[hashno];  // resultlength
 
-            cudaMalloc((void**)dev_keyarray, keylength);
-            cudaMalloc((void**)dev_dataarray, datalength);
-            cudaMalloc((void**)dev_HMAC_Digest, USHAMaxHashSize);
-            cudaMemcpy(dev_keyarray, keyarray, keylength,
-                       cudaMemcpyHostToDevice);
-            cudaMemcpy(dev_dataarray, dataarray, datalength,
-                       cudaMemcpyHostToDevice);
+            err = cudaMalloc((void**)&dev_keyarray, keylength);
+            if (err != cudaSuccess) {
+                printf("cudaMalloc failed: %s\n", cudaGetErrorString(err));
+                return 1;
+            }
+            err = cudaMalloc((void**)&dev_dataarray, datalength);
+            if (err != cudaSuccess) {
+                printf("cudaMalloc failed: %s\n", cudaGetErrorString(err));
+                return 1;
+            }
+            err = cudaMalloc((void**)&dev_HMAC_Digest, USHAMaxHashSize);
+            if (err != cudaSuccess) {
+                printf("cudaMalloc failed: %s\n", cudaGetErrorString(err));
+                return 1;
+            }
+            err = cudaMemcpy(dev_keyarray, keyarray, keylength,
+                             cudaMemcpyHostToDevice);
+            if (err != cudaSuccess) {
+                printf("cudaMemcpy failed: %s\n", cudaGetErrorString(err));
+                return 1;
+            }
+            err = cudaMemcpy(dev_dataarray, dataarray, datalength,
+                             cudaMemcpyHostToDevice);
+            if (err != cudaSuccess) {
+                printf("cudaMemcpy failed: %s\n", cudaGetErrorString(err));
+                return 1;
+            }
 
             switch (hashno) {
                 case 0:
@@ -349,8 +368,12 @@ int main(int argc, char const* argv[]) {
                     break;
             }
 
-            cudaMemcpy(HMAC_Digest, dev_HMAC_Digest, USHAMaxHashSize,
-                       cudaMemcpyDeviceToHost);
+            err = cudaMemcpy(HMAC_Digest, dev_HMAC_Digest, USHAMaxHashSize,
+                             cudaMemcpyDeviceToHost);
+            if (err != cudaSuccess) {
+                printf("cudaMemcpy failed: %s\n", cudaGetErrorString(err));
+                return 1;
+            }
 
             printf("\t\texpect: ");
             for (i = 0; i < resultlength * 2; i++) {

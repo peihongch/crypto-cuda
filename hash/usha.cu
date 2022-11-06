@@ -24,7 +24,7 @@
  *      sha Error Code.
  *
  */
-int USHAReset(USHAContext* ctx, enum SHAversion whichSha) {
+__device__ int USHAReset(USHAContext* ctx, enum SHAversion whichSha) {
     if (ctx) {
         ctx->whichSha = whichSha;
         switch (whichSha) {
@@ -66,7 +66,9 @@ int USHAReset(USHAContext* ctx, enum SHAversion whichSha) {
  *      sha Error Code.
  *
  */
-int USHAInput(USHAContext* ctx, const uint8_t* bytes, unsigned int bytecount) {
+__device__ int USHAInput(USHAContext* ctx,
+                         const uint8_t* bytes,
+                         unsigned int bytecount) {
     if (ctx) {
         switch (ctx->whichSha) {
             case SHA1:
@@ -105,7 +107,9 @@ int USHAInput(USHAContext* ctx, const uint8_t* bytes, unsigned int bytecount) {
  * Returns:
  *   sha Error Code.
  */
-int USHAFinalBits(USHAContext* ctx, const uint8_t bits, unsigned int bitcount) {
+__device__ int USHAFinalBits(USHAContext* ctx,
+                             const uint8_t bits,
+                             unsigned int bitcount) {
     if (ctx) {
         switch (ctx->whichSha) {
             case SHA1:
@@ -149,7 +153,8 @@ int USHAFinalBits(USHAContext* ctx, const uint8_t bits, unsigned int bitcount) {
  *   sha Error Code.
  *
  */
-int USHAResult(USHAContext* ctx, uint8_t Message_Digest[USHAMaxHashSize]) {
+__device__ int USHAResult(USHAContext* ctx,
+                          uint8_t Message_Digest[USHAMaxHashSize]) {
     if (ctx) {
         switch (ctx->whichSha) {
             case SHA1:
@@ -185,7 +190,7 @@ int USHAResult(USHAContext* ctx, uint8_t Message_Digest[USHAMaxHashSize]) {
  *   block size
  *
  */
-int USHABlockSize(enum SHAversion whichSha) {
+__device__ int USHABlockSize(enum SHAversion whichSha) {
     switch (whichSha) {
         case SHA1:
             return SHA1_Message_Block_Size;
@@ -216,7 +221,7 @@ int USHABlockSize(enum SHAversion whichSha) {
  *   hash size
  *
  */
-int USHAHashSize(enum SHAversion whichSha) {
+__device__ int USHAHashSize(enum SHAversion whichSha) {
     switch (whichSha) {
         case SHA1:
             return SHA1HashSize;
@@ -247,7 +252,7 @@ int USHAHashSize(enum SHAversion whichSha) {
  *   hash size in bits
  *
  */
-int USHAHashSizeBits(enum SHAversion whichSha) {
+__device__ int USHAHashSizeBits(enum SHAversion whichSha) {
     switch (whichSha) {
         case SHA1:
             return SHA1HashSizeBits;

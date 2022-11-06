@@ -4,20 +4,20 @@ all: sha1 sha224-256 sha384-512 hmac usha
 # shatest: shatest.c sha1 sha224-256 sha384-512 hmac usha
 # 	gcc -o shatest shatest.c sha1.o sha224-256.o sha384-512.o hmac.o usha.o
 
-sha1: sha1.c
-	gcc -c sha1.c
+sha1: sha1.cu
+	nvcc -g -G -O3 -rdc=true -Xcompiler -fPIC -c sha1.cu
 
-sha224-256: sha224-256.c
-	gcc -c sha224-256.c
+sha224-256: sha224-256.cu
+	nvcc -g -G -O3 -rdc=true -Xcompiler -fPIC -c sha224-256.cu
 
-sha384-512: sha384-512.c
-	gcc -c sha384-512.c
+sha384-512: sha384-512.cu
+	nvcc -g -G -O3 -rdc=true -Xcompiler -fPIC -c sha384-512.cu
 
-usha: usha.c
-	gcc -c usha.c
+usha: usha.cu
+	nvcc -g -G -O3 -rdc=true -Xcompiler -fPIC -c usha.cu
 
-hmac: hmac.c usha
-	gcc -c hmac.c
+hmac: hmac.cu usha
+	nvcc -g -G -O3 -rdc=true -Xcompiler -fPIC -c hmac.cu
 
 clean: 
 	rm -rf shatest *.o

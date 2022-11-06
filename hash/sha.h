@@ -24,6 +24,8 @@
  *              SHA-512         64 byte / 512 bit
  */
 
+#include <cuda.h>
+#include <cuda_runtime.h>
 #include <stdint.h>
 /*
  * If you do not have the ISO standard stdint.h header file, then you
@@ -154,7 +156,7 @@ typedef struct SHA512Context SHA384Context;
  *  hashing operations.
  */
 typedef struct USHAContext {
-    int whichSha; /* which SHA is being used */
+    SHAversion whichSha; /* which SHA is being used */
     union {
         SHA1Context sha1Context;
         SHA224Context sha224Context;
@@ -169,7 +171,7 @@ typedef struct USHAContext {
  *  keyed hashing operation.
  */
 typedef struct HMACContext {
-    int whichSha;           /* which SHA is being used */
+    SHAversion whichSha;    /* which SHA is being used */
     int hashSize;           /* hash size of SHA being used */
     int blockSize;          /* block size of SHA being used */
     USHAContext shaContext; /* SHA context */
@@ -181,93 +183,101 @@ typedef struct HMACContext {
  */
 
 /* SHA-1 */
-extern int SHA1Reset(SHA1Context*);
-extern int SHA1Input(SHA1Context*,
-                     const uint8_t* bytes,
-                     unsigned int bytecount);
-extern int SHA1FinalBits(SHA1Context*,
-                         const uint8_t bits,
-                         unsigned int bitcount);
-extern int SHA1Result(SHA1Context*, uint8_t Message_Digest[SHA1HashSize]);
+__device__ int SHA1Reset(SHA1Context*);
+__device__ int SHA1Input(SHA1Context*,
+                         const uint8_t* bytes,
+                         unsigned int bytecount);
+__device__ int SHA1FinalBits(SHA1Context*,
+                             const uint8_t bits,
+                             unsigned int bitcount);
+__device__ int SHA1Result(SHA1Context*, uint8_t Message_Digest[SHA1HashSize]);
 
 /* SHA-224 */
-extern int SHA224Reset(SHA224Context*);
-extern int SHA224Input(SHA224Context*,
-                       const uint8_t* bytes,
-                       unsigned int bytecount);
-extern int SHA224FinalBits(SHA224Context*,
-                           const uint8_t bits,
-                           unsigned int bitcount);
-extern int SHA224Result(SHA224Context*, uint8_t Message_Digest[SHA224HashSize]);
+__device__ int SHA224Reset(SHA224Context*);
+__device__ int SHA224Input(SHA224Context*,
+                           const uint8_t* bytes,
+                           unsigned int bytecount);
+__device__ int SHA224FinalBits(SHA224Context*,
+                               const uint8_t bits,
+                               unsigned int bitcount);
+__device__ int SHA224Result(SHA224Context*,
+                            uint8_t Message_Digest[SHA224HashSize]);
 
 /* SHA-256 */
-extern int SHA256Reset(SHA256Context*);
-extern int SHA256Input(SHA256Context*,
-                       const uint8_t* bytes,
-                       unsigned int bytecount);
-extern int SHA256FinalBits(SHA256Context*,
-                           const uint8_t bits,
-                           unsigned int bitcount);
-extern int SHA256Result(SHA256Context*, uint8_t Message_Digest[SHA256HashSize]);
+__device__ int SHA256Reset(SHA256Context*);
+__device__ int SHA256Input(SHA256Context*,
+                           const uint8_t* bytes,
+                           unsigned int bytecount);
+__device__ int SHA256FinalBits(SHA256Context*,
+                               const uint8_t bits,
+                               unsigned int bitcount);
+__device__ int SHA256Result(SHA256Context*,
+                            uint8_t Message_Digest[SHA256HashSize]);
 
 /* SHA-384 */
-extern int SHA384Reset(SHA384Context*);
-extern int SHA384Input(SHA384Context*,
-                       const uint8_t* bytes,
-                       unsigned int bytecount);
-extern int SHA384FinalBits(SHA384Context*,
-                           const uint8_t bits,
-                           unsigned int bitcount);
-extern int SHA384Result(SHA384Context*, uint8_t Message_Digest[SHA384HashSize]);
+__device__ int SHA384Reset(SHA384Context*);
+__device__ int SHA384Input(SHA384Context*,
+                           const uint8_t* bytes,
+                           unsigned int bytecount);
+__device__ int SHA384FinalBits(SHA384Context*,
+                               const uint8_t bits,
+                               unsigned int bitcount);
+__device__ int SHA384Result(SHA384Context*,
+                            uint8_t Message_Digest[SHA384HashSize]);
 
 /* SHA-512 */
-extern int SHA512Reset(SHA512Context*);
-extern int SHA512Input(SHA512Context*,
-                       const uint8_t* bytes,
-                       unsigned int bytecount);
-extern int SHA512FinalBits(SHA512Context*,
-                           const uint8_t bits,
-                           unsigned int bitcount);
-extern int SHA512Result(SHA512Context*, uint8_t Message_Digest[SHA512HashSize]);
+__device__ int SHA512Reset(SHA512Context*);
+__device__ int SHA512Input(SHA512Context*,
+                           const uint8_t* bytes,
+                           unsigned int bytecount);
+__device__ int SHA512FinalBits(SHA512Context*,
+                               const uint8_t bits,
+                               unsigned int bitcount);
+__device__ int SHA512Result(SHA512Context*,
+                            uint8_t Message_Digest[SHA512HashSize]);
 /* Unified SHA functions, chosen by whichSha */
-extern int USHAReset(USHAContext*, SHAversion whichSha);
-extern int USHAInput(USHAContext*,
-                     const uint8_t* bytes,
-                     unsigned int bytecount);
-extern int USHAFinalBits(USHAContext*,
-                         const uint8_t bits,
-                         unsigned int bitcount);
-extern int USHAResult(USHAContext*, uint8_t Message_Digest[USHAMaxHashSize]);
-extern int USHABlockSize(enum SHAversion whichSha);
-extern int USHAHashSize(enum SHAversion whichSha);
-extern int USHAHashSizeBits(enum SHAversion whichSha);
+__device__ int USHAReset(USHAContext*, SHAversion whichSha);
+__device__ int USHAInput(USHAContext*,
+                         const uint8_t* bytes,
+                         unsigned int bytecount);
+__device__ int USHAFinalBits(USHAContext*,
+                             const uint8_t bits,
+                             unsigned int bitcount);
+__device__ int USHAResult(USHAContext*,
+                          uint8_t Message_Digest[USHAMaxHashSize]);
+__device__ int USHABlockSize(enum SHAversion whichSha);
+__device__ int USHAHashSize(enum SHAversion whichSha);
+__device__ int USHAHashSizeBits(enum SHAversion whichSha);
 
 /*
  * HMAC Keyed-Hashing for Message Authentication, RFC2104,
  * for all SHAs.
  * This interface allows a fixed-length text input to be used.
  */
-extern int hmac(SHAversion whichSha,       /* which SHA algorithm to use */
-                const unsigned char* text, /* pointer to data stream */
-                int text_len,              /* length of data stream */
-                const unsigned char* key,  /* pointer to authentication key */
-                int key_len,               /* length of authentication key */
-                uint8_t digest[USHAMaxHashSize]); /* caller digest to fill in */
+__device__ int hmac(
+    SHAversion whichSha,              /* which SHA algorithm to use */
+    const unsigned char* text,        /* pointer to data stream */
+    int text_len,                     /* length of data stream */
+    const unsigned char* key,         /* pointer to authentication key */
+    int key_len,                      /* length of authentication key */
+    uint8_t digest[USHAMaxHashSize]); /* caller digest to fill in */
 
 /*
  * HMAC Keyed-Hashing for Message Authentication, RFC2104,
  * for all SHAs.
  * This interface allows any length of text input to be used.
  */
-extern int hmacReset(HMACContext* ctx,
-                     enum SHAversion whichSha,
-                     const unsigned char* key,
-                     int key_len);
-extern int hmacInput(HMACContext* ctx, const unsigned char* text, int text_len);
+__device__ int hmacReset(HMACContext* ctx,
+                         enum SHAversion whichSha,
+                         const unsigned char* key,
+                         int key_len);
+__device__ int hmacInput(HMACContext* ctx,
+                         const unsigned char* text,
+                         int text_len);
 
-extern int hmacFinalBits(HMACContext* ctx,
-                         const uint8_t bits,
-                         unsigned int bitcount);
-extern int hmacResult(HMACContext* ctx, uint8_t digest[USHAMaxHashSize]);
+__device__ int hmacFinalBits(HMACContext* ctx,
+                             const uint8_t bits,
+                             unsigned int bitcount);
+__device__ int hmacResult(HMACContext* ctx, uint8_t digest[USHAMaxHashSize]);
 
 #endif /* _SHA_H_ */

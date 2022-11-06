@@ -56,7 +56,6 @@
 /*
  * add "length" to the length
  */
-static uint32_t addTemp;
 #define SHA224_256AddLength(context, length)                                   \
     (addTemp = (context)->Length_Low,                                          \
      (context)->Corrupted = (((context)->Length_Low += (length)) < addTemp) && \
@@ -65,21 +64,23 @@ static uint32_t addTemp;
                                 : 0)
 
 /* Local Function Prototypes */
-static void SHA224_256Finalize(SHA256Context* context, uint8_t Pad_Byte);
-static void SHA224_256PadMessage(SHA256Context* context, uint8_t Pad_Byte);
-static void SHA224_256ProcessMessageBlock(SHA256Context* context);
-static int SHA224_256Reset(SHA256Context* context, uint32_t* H0);
-static int SHA224_256ResultN(SHA256Context* context,
-                             uint8_t Message_Digest[],
-                             int HashSize);
+__device__ static void SHA224_256Finalize(SHA256Context* context,
+                                          uint8_t Pad_Byte);
+__device__ static void SHA224_256PadMessage(SHA256Context* context,
+                                            uint8_t Pad_Byte);
+__device__ static void SHA224_256ProcessMessageBlock(SHA256Context* context);
+__device__ static int SHA224_256Reset(SHA256Context* context, uint32_t* H0);
+__device__ static int SHA224_256ResultN(SHA256Context* context,
+                                        uint8_t Message_Digest[],
+                                        int HashSize);
 
 /* Initial Hash Values: FIPS-180-2 Change Notice 1 */
-static uint32_t SHA224_H0[SHA256HashSize / 4] = {
+__constant__ static uint32_t SHA224_H0[SHA256HashSize / 4] = {
     0xC1059ED8, 0x367CD507, 0x3070DD17, 0xF70E5939,
     0xFFC00B31, 0x68581511, 0x64F98FA7, 0xBEFA4FA4};
 
 /* Initial Hash Values: FIPS-180-2 section 5.3.2 */
-static uint32_t SHA256_H0[SHA256HashSize / 4] = {
+__constant__ static uint32_t SHA256_H0[SHA256HashSize / 4] = {
     0x6A09E667, 0xBB67AE85, 0x3C6EF372, 0xA54FF53A,
     0x510E527F, 0x9B05688C, 0x1F83D9AB, 0x5BE0CD19};
 /*
@@ -96,7 +97,7 @@ static uint32_t SHA256_H0[SHA256HashSize / 4] = {
  * Returns:
  *   sha Error Code.
  */
-int SHA224Reset(SHA224Context* context) {
+__device__ int SHA224Reset(SHA224Context* context) {
     return SHA224_256Reset(context, SHA224_H0);
 }
 
@@ -120,9 +121,9 @@ int SHA224Reset(SHA224Context* context) {
  *   sha Error Code.
  *
  */
-int SHA224Input(SHA224Context* context,
-                const uint8_t* message_array,
-                unsigned int length) {
+__device__ int SHA224Input(SHA224Context* context,
+                           const uint8_t* message_array,
+                           unsigned int length) {
     return SHA256Input(context, message_array, length);
 }
 
@@ -145,9 +146,9 @@ int SHA224Input(SHA224Context* context,
  * Returns:
  *   sha Error Code.
  */
-int SHA224FinalBits(SHA224Context* context,
-                    const uint8_t message_bits,
-                    unsigned int length) {
+__device__ int SHA224FinalBits(SHA224Context* context,
+                               const uint8_t message_bits,
+                               unsigned int length) {
     return SHA256FinalBits(context, message_bits, length);
 }
 
@@ -169,8 +170,8 @@ int SHA224FinalBits(SHA224Context* context,
  * Returns:
  *   sha Error Code.
  */
-int SHA224Result(SHA224Context* context,
-                 uint8_t Message_Digest[SHA224HashSize]) {
+__device__ int SHA224Result(SHA224Context* context,
+                            uint8_t Message_Digest[SHA224HashSize]) {
     return SHA224_256ResultN(context, Message_Digest, SHA224HashSize);
 }
 
@@ -188,7 +189,7 @@ int SHA224Result(SHA224Context* context,
  * Returns:
  *   sha Error Code.
  */
-int SHA256Reset(SHA256Context* context) {
+__device__ int SHA256Reset(SHA256Context* context) {
     return SHA224_256Reset(context, SHA256_H0);
 }
 
@@ -211,9 +212,10 @@ int SHA256Reset(SHA256Context* context) {
  * Returns:
  *   sha Error Code.
  */
-int SHA256Input(SHA256Context* context,
-                const uint8_t* message_array,
-                unsigned int length) {
+__device__ int SHA256Input(SHA256Context* context,
+                           const uint8_t* message_array,
+                           unsigned int length) {
+    static uint32_t addTemp;
     if (!length)
         return shaSuccess;
 
@@ -261,9 +263,10 @@ int SHA256Input(SHA256Context* context,
  * Returns:
  *   sha Error Code.
  */
-int SHA256FinalBits(SHA256Context* context,
-                    const uint8_t message_bits,
-                    unsigned int length) {
+__device__ int SHA256FinalBits(SHA256Context* context,
+                               const uint8_t message_bits,
+                               unsigned int length) {
+    static uint32_t addTemp;
     uint8_t masks[8] = {
         /* 0 0b00000000 */ 0x00, /* 1 0b10000000 */ 0x80,
         /* 2 0b11000000 */ 0xC0, /* 3 0b11100000 */ 0xE0,
@@ -314,7 +317,7 @@ int SHA256FinalBits(SHA256Context* context,
  * Returns:
  *   sha Error Code.
  */
-int SHA256Result(SHA256Context* context, uint8_t Message_Digest[]) {
+__device__ int SHA256Result(SHA256Context* context, uint8_t Message_Digest[]) {
     return SHA224_256ResultN(context, Message_Digest, SHA256HashSize);
 }
 
@@ -336,7 +339,8 @@ int SHA256Result(SHA256Context* context, uint8_t Message_Digest[]) {
  * Returns:
  *   sha Error Code.
  */
-static void SHA224_256Finalize(SHA256Context* context, uint8_t Pad_Byte) {
+__device__ void SHA224_256Finalize(SHA256Context* context,
+                                          uint8_t Pad_Byte) {
     int i;
     SHA224_256PadMessage(context, Pad_Byte);
     /* message may be sensitive, so clear it out */
@@ -372,7 +376,8 @@ static void SHA224_256Finalize(SHA256Context* context, uint8_t Pad_Byte) {
  * Returns:
  *   Nothing.
  */
-static void SHA224_256PadMessage(SHA256Context* context, uint8_t Pad_Byte) {
+__device__ void SHA224_256PadMessage(SHA256Context* context,
+                                            uint8_t Pad_Byte) {
     /*
      * Check to see if the current message block is too small to hold
      * the initial padding bits and length. If so, we will pad the
@@ -424,7 +429,7 @@ static void SHA224_256PadMessage(SHA256Context* context, uint8_t Pad_Byte) {
  *   single character names, were used because those were the
  *   names used in the publication.
  */
-static void SHA224_256ProcessMessageBlock(SHA256Context* context) {
+__device__ void SHA224_256ProcessMessageBlock(SHA256Context* context) {
     /* Constants defined in FIPS-180-2, section 4.2.2 */
     static const uint32_t K[64] = {
         0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1,
@@ -505,7 +510,7 @@ static void SHA224_256ProcessMessageBlock(SHA256Context* context) {
  * Returns:
  *   sha Error Code.
  */
-static int SHA224_256Reset(SHA256Context* context, uint32_t* H0) {
+__device__ int SHA224_256Reset(SHA256Context* context, uint32_t* H0) {
     if (!context)
         return shaNull;
 
@@ -548,9 +553,9 @@ static int SHA224_256Reset(SHA256Context* context, uint32_t* H0) {
  * Returns:
  * *   sha Error Code.
  */
-static int SHA224_256ResultN(SHA256Context* context,
-                             uint8_t Message_Digest[],
-                             int HashSize) {
+__device__ int SHA224_256ResultN(SHA256Context* context,
+                                        uint8_t Message_Digest[],
+                                        int HashSize) {
     int i;
 
     if (!context || !Message_Digest)

@@ -35,12 +35,12 @@
  *      sha Error Code.
  *
  */
-int hmac(SHAversion whichSha,
-         const unsigned char* text,
-         int text_len,
-         const unsigned char* key,
-         int key_len,
-         uint8_t digest[USHAMaxHashSize]) {
+__device__ int hmac(SHAversion whichSha,
+                    const unsigned char* text,
+                    int text_len,
+                    const unsigned char* key,
+                    int key_len,
+                    uint8_t digest[USHAMaxHashSize]) {
     HMACContext ctx;
     return hmacReset(&ctx, whichSha, key, key_len) ||
            hmacInput(&ctx, text, text_len) || hmacResult(&ctx, digest);
@@ -67,10 +67,10 @@ int hmac(SHAversion whichSha,
  *      sha Error Code.
  *
  */
-int hmacReset(HMACContext* ctx,
-              enum SHAversion whichSha,
-              const unsigned char* key,
-              int key_len) {
+__device__ int hmacReset(HMACContext* ctx,
+                         enum SHAversion whichSha,
+                         const unsigned char* key,
+                         int key_len) {
     int i, blocksize, hashsize;
 
     /* inner padding - key XORd with ipad */
@@ -151,7 +151,9 @@ int hmacReset(HMACContext* ctx,
  *      sha Error Code.
  *
  */
-int hmacInput(HMACContext* ctx, const unsigned char* text, int text_len) {
+__device__ int hmacInput(HMACContext* ctx,
+                         const unsigned char* text,
+                         int text_len) {
     if (!ctx)
         return shaNull;
     /* then text of datagram */
@@ -177,7 +179,9 @@ int hmacInput(HMACContext* ctx, const unsigned char* text, int text_len) {
  * Returns:
  *   sha Error Code.
  */
-int hmacFinalBits(HMACContext* ctx, const uint8_t bits, unsigned int bitcount) {
+__device__ int hmacFinalBits(HMACContext* ctx,
+                             const uint8_t bits,
+                             unsigned int bitcount) {
     if (!ctx)
         return shaNull;
     /* then final bits of datagram */
@@ -205,7 +209,7 @@ int hmacFinalBits(HMACContext* ctx, const uint8_t bits, unsigned int bitcount) {
  *   sha Error Code.
  *
  */
-int hmacResult(HMACContext* ctx, uint8_t* digest) {
+__device__ int hmacResult(HMACContext* ctx, uint8_t* digest) {
     if (!ctx)
         return shaNull;
 

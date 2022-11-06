@@ -221,7 +221,6 @@ static uint32_t Maj_temp1[2], Maj_temp2[2], Maj_temp3[2], Maj_temp4[2];
 /*
  * add "length" to the length
  */
-static uint32_t addTemp[4] = {0, 0, 0, 0};
 #define SHA384_512AddLength(context, length)                            \
     (addTemp[3] = (length), SHA512_ADDTO4((context)->Length, addTemp),  \
      (context)->Corrupted =                                             \
@@ -231,20 +230,20 @@ static uint32_t addTemp[4] = {0, 0, 0, 0};
              : 0)
 
 /* Local Function Prototypes */
-static void SHA384_512Finalize(SHA512Context* context, uint8_t Pad_Byte);
-static void SHA384_512PadMessage(SHA512Context* context, uint8_t Pad_Byte);
-static void SHA384_512ProcessMessageBlock(SHA512Context* context);
-static int SHA384_512Reset(SHA512Context* context, uint32_t H0[]);
-static int SHA384_512ResultN(SHA512Context* context,
-                             uint8_t Message_Digest[],
-                             int HashSize);
+__device__ void SHA384_512Finalize(SHA512Context* context, uint8_t Pad_Byte);
+__device__ void SHA384_512PadMessage(SHA512Context* context, uint8_t Pad_Byte);
+__device__ void SHA384_512ProcessMessageBlock(SHA512Context* context);
+__device__ int SHA384_512Reset(SHA512Context* context, uint32_t H0[]);
+__device__ int SHA384_512ResultN(SHA512Context* context,
+                                 uint8_t Message_Digest[],
+                                 int HashSize);
 
 /* Initial Hash Values: FIPS-180-2 sections 5.3.3 and 5.3.4 */
-static uint32_t SHA384_H0[SHA512HashSize / 4] = {
+__constant__ static uint32_t SHA384_H0[SHA512HashSize / 4] = {
     0xCBBB9D5D, 0xC1059ED8, 0x629A292A, 0x367CD507, 0x9159015A, 0x3070DD17,
     0x152FECD8, 0xF70E5939, 0x67332667, 0xFFC00B31, 0x8EB44A87, 0x68581511,
     0xDB0C2E0D, 0x64F98FA7, 0x47B5481D, 0xBEFA4FA4};
-static uint32_t SHA512_H0[SHA512HashSize / 4] = {
+__constant__ static uint32_t SHA512_H0[SHA512HashSize / 4] = {
     0x6A09E667, 0xF3BCC908, 0xBB67AE85, 0x84CAA73B, 0x3C6EF372, 0xFE94F82B,
     0xA54FF53A, 0x5F1D36F1, 0x510E527F, 0xADE682D1, 0x9B05688C, 0x2B3E6C1F,
     0x1F83D9AB, 0xFB41BD6B, 0x5BE0CD19, 0x137E2179};
@@ -269,7 +268,6 @@ static uint32_t SHA512_H0[SHA512HashSize / 4] = {
 /*
  * add "length" to the length
  */
-static uint64_t addTemp;
 #define SHA384_512AddLength(context, length)                             \
     (addTemp = context->Length_Low,                                      \
      context->Corrupted = ((context->Length_Low += length) < addTemp) && \
@@ -278,23 +276,23 @@ static uint64_t addTemp;
                               : 0)
 
 /* Local Function Prototypes */
-static void SHA384_512Finalize(SHA512Context* context, uint8_t Pad_Byte);
-static void SHA384_512PadMessage(SHA512Context* context, uint8_t Pad_Byte);
-static void SHA384_512ProcessMessageBlock(SHA512Context* context);
-static int SHA384_512Reset(SHA512Context* context, uint64_t H0[]);
-static int SHA384_512ResultN(SHA512Context* context,
-                             uint8_t Message_Digest[],
-                             int HashSize);
+__device__ void SHA384_512Finalize(SHA512Context* context, uint8_t Pad_Byte);
+__device__ void SHA384_512PadMessage(SHA512Context* context, uint8_t Pad_Byte);
+__device__ void SHA384_512ProcessMessageBlock(SHA512Context* context);
+__device__ int SHA384_512Reset(SHA512Context* context, uint64_t H0[]);
+__device__ int SHA384_512ResultN(SHA512Context* context,
+                                 uint8_t Message_Digest[],
+                                 int HashSize);
 
 /* Initial Hash Values: FIPS-180-2 sections 5.3.3 and 5.3.4 */
-static uint64_t SHA384_H0[] = {0xCBBB9D5DC1059ED8ll, 0x629A292A367CD507ll,
-                               0x9159015A3070DD17ll, 0x152FECD8F70E5939ll,
-                               0x67332667FFC00B31ll, 0x8EB44A8768581511ll,
-                               0xDB0C2E0D64F98FA7ll, 0x47B5481DBEFA4FA4ll};
-static uint64_t SHA512_H0[] = {0x6A09E667F3BCC908ll, 0xBB67AE8584CAA73Bll,
-                               0x3C6EF372FE94F82Bll, 0xA54FF53A5F1D36F1ll,
-                               0x510E527FADE682D1ll, 0x9B05688C2B3E6C1Fll,
-                               0x1F83D9ABFB41BD6Bll, 0x5BE0CD19137E2179ll};
+__constant__ static uint64_t SHA384_H0[] = {
+    0xCBBB9D5DC1059ED8ll, 0x629A292A367CD507ll, 0x9159015A3070DD17ll,
+    0x152FECD8F70E5939ll, 0x67332667FFC00B31ll, 0x8EB44A8768581511ll,
+    0xDB0C2E0D64F98FA7ll, 0x47B5481DBEFA4FA4ll};
+__constant__ static uint64_t SHA512_H0[] = {
+    0x6A09E667F3BCC908ll, 0xBB67AE8584CAA73Bll, 0x3C6EF372FE94F82Bll,
+    0xA54FF53A5F1D36F1ll, 0x510E527FADE682D1ll, 0x9B05688C2B3E6C1Fll,
+    0x1F83D9ABFB41BD6Bll, 0x5BE0CD19137E2179ll};
 
 #endif /* USE_32BIT_ONLY */
 
@@ -313,7 +311,7 @@ static uint64_t SHA512_H0[] = {0x6A09E667F3BCC908ll, 0xBB67AE8584CAA73Bll,
  *   sha Error Code.
  *
  */
-int SHA384Reset(SHA384Context* context) {
+__device__ int SHA384Reset(SHA384Context* context) {
     return SHA384_512Reset(context, SHA384_H0);
 }
 
@@ -337,9 +335,9 @@ int SHA384Reset(SHA384Context* context) {
  *   sha Error Code.
  *
  * */
-int SHA384Input(SHA384Context* context,
-                const uint8_t* message_array,
-                unsigned int length) {
+__device__ int SHA384Input(SHA384Context* context,
+                           const uint8_t* message_array,
+                           unsigned int length) {
     return SHA512Input(context, message_array, length);
 }
 
@@ -363,9 +361,9 @@ int SHA384Input(SHA384Context* context,
  *   sha Error Code.
  *
  */
-int SHA384FinalBits(SHA384Context* context,
-                    const uint8_t message_bits,
-                    unsigned int length) {
+__device__ int SHA384FinalBits(SHA384Context* context,
+                               const uint8_t message_bits,
+                               unsigned int length) {
     return SHA512FinalBits(context, message_bits, length);
 }
 
@@ -388,8 +386,8 @@ int SHA384FinalBits(SHA384Context* context,
  *   sha Error Code.
  *
  */
-int SHA384Result(SHA384Context* context,
-                 uint8_t Message_Digest[SHA384HashSize]) {
+__device__ int SHA384Result(SHA384Context* context,
+                            uint8_t Message_Digest[SHA384HashSize]) {
     return SHA384_512ResultN(context, Message_Digest, SHA384HashSize);
 }
 
@@ -408,7 +406,7 @@ int SHA384Result(SHA384Context* context,
  *   sha Error Code.
  *
  */
-int SHA512Reset(SHA512Context* context) {
+__device__ int SHA512Reset(SHA512Context* context) {
     return SHA384_512Reset(context, SHA512_H0);
 }
 
@@ -432,9 +430,14 @@ int SHA512Reset(SHA512Context* context) {
  *   sha Error Code.
  * *
  */
-int SHA512Input(SHA512Context* context,
-                const uint8_t* message_array,
-                unsigned int length) {
+__device__ int SHA512Input(SHA512Context* context,
+                           const uint8_t* message_array,
+                           unsigned int length) {
+#ifdef USE_32BIT_ONLY
+    static uint32_t addTemp[4] = {0, 0, 0, 0};
+#else
+    static uint64_t addTemp;
+#endif
     if (!length)
         return shaSuccess;
 
@@ -483,9 +486,14 @@ int SHA512Input(SHA512Context* context,
  *   sha Error Code.
  *
  */
-int SHA512FinalBits(SHA512Context* context,
-                    const uint8_t message_bits,
-                    unsigned int length) {
+__device__ int SHA512FinalBits(SHA512Context* context,
+                               const uint8_t message_bits,
+                               unsigned int length) {
+#ifdef USE_32BIT_ONLY
+    static uint32_t addTemp[4] = {0, 0, 0, 0};
+#else
+    static uint64_t addTemp;
+#endif
     uint8_t masks[8] = {
         /* 0 0b00000000 */ 0x00, /* 1 0b10000000 */ 0x80,
         /* 2 0b11000000 */ 0xC0, /* 3 0b11100000 */ 0xE0,
@@ -537,7 +545,7 @@ int SHA512FinalBits(SHA512Context* context,
  *   sha Error Code.
  *
  */
-static void SHA384_512Finalize(SHA512Context* context, uint8_t Pad_Byte) {
+__device__ void SHA384_512Finalize(SHA512Context* context, uint8_t Pad_Byte) {
     int_least16_t i;
     SHA384_512PadMessage(context, Pad_Byte);
     /* message may be sensitive, clear it out */
@@ -572,8 +580,8 @@ static void SHA384_512Finalize(SHA512Context* context, uint8_t Pad_Byte) {
  * *   sha Error Code.
  *
  */
-int SHA512Result(SHA512Context* context,
-                 uint8_t Message_Digest[SHA512HashSize]) {
+__device__ int SHA512Result(SHA512Context* context,
+                            uint8_t Message_Digest[SHA512HashSize]) {
     return SHA384_512ResultN(context, Message_Digest, SHA512HashSize);
 }
 
@@ -602,7 +610,7 @@ int SHA512Result(SHA512Context* context,
  *   Nothing.
  *
  */
-static void SHA384_512PadMessage(SHA512Context* context, uint8_t Pad_Byte) {
+__device__ void SHA384_512PadMessage(SHA512Context* context, uint8_t Pad_Byte) {
     /*
      * Check to see if the current message block is too small to hold
      * the initial padding bits and length. If so, we will pad the
@@ -684,7 +692,7 @@ static void SHA384_512PadMessage(SHA512Context* context, uint8_t Pad_Byte) {
  *
  *
  */
-static void SHA384_512ProcessMessageBlock(SHA512Context* context) {
+__device__ void SHA384_512ProcessMessageBlock(SHA512Context* context) {
     /* Constants defined in FIPS-180-2, section 4.2.3 */
 #ifdef USE_32BIT_ONLY
     static const uint32_t K[80 * 2] = {
@@ -911,9 +919,9 @@ static void SHA384_512ProcessMessageBlock(SHA512Context* context) {
  *
  */
 #ifdef USE_32BIT_ONLY
-static int SHA384_512Reset(SHA512Context* context, uint32_t H0[])
+__device__ int SHA384_512Reset(SHA512Context* context, uint32_t H0[])
 #else  /* !USE_32BIT_ONLY */
-static int SHA384_512Reset(SHA512Context* context, uint64_t H0[])
+__device__ int SHA384_512Reset(SHA512Context* context, uint64_t H0[])
 #endif /* USE_32BIT_ONLY */
 {
     int i;
@@ -962,9 +970,9 @@ static int SHA384_512Reset(SHA512Context* context, uint64_t H0[])
  *   sha Error Code.
  *
  */
-static int SHA384_512ResultN(SHA512Context* context,
-                             uint8_t Message_Digest[],
-                             int HashSize) {
+__device__ int SHA384_512ResultN(SHA512Context* context,
+                                 uint8_t Message_Digest[],
+                                 int HashSize) {
     int i;
 
 #ifdef USE_32BIT_ONLY
