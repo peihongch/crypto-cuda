@@ -14,9 +14,6 @@
 
 #include "gaes.cu"
 
-#define TEXT_SIZE (4 * 1024 * 1024)
-#define KEY_LENGTH (64)
-
 #define XTS_SECTOR_SIZE (512)
 
 #define gf128mul_dat(q)                                                    \
@@ -143,6 +140,9 @@ __global__ void global_xts_decrypt(uint8_t* key,
                                    const uint64_t tweak) {
     xts_decrypt(key, key_len, data, tweak);
 }
+
+#define TEXT_SIZE (4 * 1024 * 1024)
+#define KEY_LENGTH (64)
 
 int main(int argc, char const* argv[]) {
     uint8_t* dev_text;
