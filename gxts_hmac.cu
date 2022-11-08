@@ -44,13 +44,11 @@ __global__ void xts_hmac_encrypt(uint8_t* key,
                                  uint8_t* mac) {
     xts_encrypt(key, AES_KEY_LENGTH, data, tweak);
 
-    if (threadIdx.x == 0) {
-        uint64_t aad[2] = {0, 0};
-        uint8_t* data_block = data + XTS_SECTOR_SIZE * blockIdx.x;
-        hmac_sha(data_block, XTS_SECTOR_SIZE, (unsigned char*)aad, sizeof(aad),
-                 key + AES_KEY_LENGTH, HMAC_KEY_LENGTH,
-                 mac + MAC_LENGTH * blockIdx.x);
-    }
+    uint64_t aad[2] = {tweak + blockIdx.x, 0};
+    uint8_t* data_block = data + XTS_SECTOR_SIZE * blockIdx.x;
+    hmac_sha(data_block, XTS_SECTOR_SIZE, (unsigned char*)aad, sizeof(aad),
+             key + AES_KEY_LENGTH, HMAC_KEY_LENGTH,
+             mac + MAC_LENGTH * blockIdx.x);
 }
 
 __global__ void xts_hmac_decrypt(uint8_t* key,
@@ -58,13 +56,11 @@ __global__ void xts_hmac_decrypt(uint8_t* key,
                                  uint8_t* data,
                                  const uint64_t tweak,
                                  uint8_t* mac) {
-    if (threadIdx.x == 0) {
-        uint64_t aad[2] = {0, 0};
-        uint8_t* data_block = data + XTS_SECTOR_SIZE * blockIdx.x;
-        hmac_sha(data_block, XTS_SECTOR_SIZE, (unsigned char*)aad, sizeof(aad),
-                 key + AES_KEY_LENGTH, HMAC_KEY_LENGTH,
-                 mac + MAC_LENGTH * blockIdx.x);
-    }
+    uint64_t aad[2] = {tweak + blockIdx.x, 0};
+    uint8_t* data_block = data + XTS_SECTOR_SIZE * blockIdx.x;
+    hmac_sha(data_block, XTS_SECTOR_SIZE, (unsigned char*)aad, sizeof(aad),
+             key + AES_KEY_LENGTH, HMAC_KEY_LENGTH,
+             mac + MAC_LENGTH * blockIdx.x);
 
     xts_decrypt(key, AES_KEY_LENGTH, data, tweak);
 }
@@ -75,7 +71,7 @@ int main(int argc, char const* argv[]) {
     uint8_t* dev_text;
     uint8_t* text = (uint8_t*)malloc(TEXT_SIZE);
     uint8_t* dev_mac;
-    uint8_t* mac[MAC_LENGTH * (TEXT_SIZE / XTS_SECTOR_SIZE)] = {0};
+    uint8_t mac[MAC_LENGTH * (TEXT_SIZE / XTS_SECTOR_SIZE)] = {0};
     uint8_t* dev_key;
     uint8_t key[KEY_LENGTH] = {
         0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b,
@@ -105,8 +101,8 @@ int main(int argc, char const* argv[]) {
     dim3 dimGrid(TEXT_SIZE / XTS_SECTOR_SIZE, 1);
 
     printf(
-        "input    :   0x%.8x 0x%.8x 0x%.8x 0x%.8x 0x%.8x 0x%.8x 0x%.8x "
-        "0x%.8x 0x%.8x 0x%.8x 0x%.8x 0x%.8x 0x%.8x 0x%.8x 0x%.8x 0x%.8x\n",
+        "input    :   %.2x %.2x %.2x %.2x %.2x %.2x %.2x %.2x %.2x %.2x %.2x "
+        "%.2x %.2x %.2x %.2x %.2x\n",
         text[0], text[1], text[2], text[3], text[4], text[5], text[6], text[7],
         text[8], text[9], text[10], text[11], text[12], text[13], text[14],
         text[15]);
@@ -117,16 +113,20 @@ int main(int argc, char const* argv[]) {
     cudaMemcpy(mac, dev_mac, MAC_LENGTH * (TEXT_SIZE / XTS_SECTOR_SIZE),
                cudaMemcpyDeviceToHost);
     printf(
-        "encrypt  :   0x%.8x 0x%.8x 0x%.8x 0x%.8x 0x%.8x 0x%.8x 0x%.8x "
-        "0x%.8x 0x%.8x 0x%.8x 0x%.8x 0x%.8x 0x%.8x 0x%.8x 0x%.8x 0x%.8x\n",
+        "encrypt  :   %.2x %.2x %.2x %.2x %.2x %.2x %.2x %.2x %.2x %.2x %.2x "
+        "%.2x %.2x %.2x %.2x %.2x\n",
         text[0], text[1], text[2], text[3], text[4], text[5], text[6], text[7],
         text[8], text[9], text[10], text[11], text[12], text[13], text[14],
         text[15]);
     printf(
-        "  └─mac  :   0x%.8x 0x%.8x 0x%.8x 0x%.8x 0x%.8x 0x%.8x 0x%.8x "
-        "0x%.8x 0x%.8x 0x%.8x 0x%.8x 0x%.8x 0x%.8x 0x%.8x 0x%.8x 0x%.8x\n",
+        "  └─mac  :   %.2x %.2x %.2x %.2x %.2x %.2x %.2x %.2x %.2x %.2x %.2x "
+        "%.2x %.2x %.2x %.2x %.2x %.2x %.2x %.2x %.2x %.2x %.2x %.2x %.2x %.2x "
+        "%.2x %.2x "
+        "%.2x %.2x %.2x %.2x %.2x\n",
         mac[0], mac[1], mac[2], mac[3], mac[4], mac[5], mac[6], mac[7], mac[8],
-        mac[9], mac[10], mac[11], mac[12], mac[13], mac[14], mac[15]);
+        mac[9], mac[10], mac[11], mac[12], mac[13], mac[14], mac[15], mac[16],
+        mac[17], mac[18], mac[19], mac[20], mac[21], mac[22], mac[23], mac[24],
+        mac[25], mac[26], mac[27], mac[28], mac[29], mac[30], mac[31]);
 
     xts_hmac_decrypt<<<dimGrid, dimBlock>>>(dev_key, KEY_LENGTH, dev_text, 0,
                                             dev_mac);
@@ -134,16 +134,20 @@ int main(int argc, char const* argv[]) {
     cudaMemcpy(mac, dev_mac, MAC_LENGTH * (TEXT_SIZE / XTS_SECTOR_SIZE),
                cudaMemcpyDeviceToHost);
     printf(
-        "decrypt  :   0x%.8x 0x%.8x 0x%.8x 0x%.8x 0x%.8x 0x%.8x 0x%.8x "
-        "0x%.8x 0x%.8x 0x%.8x 0x%.8x 0x%.8x 0x%.8x 0x%.8x 0x%.8x 0x%.8x\n",
+        "decrypt  :   %.2x %.2x %.2x %.2x %.2x %.2x %.2x %.2x %.2x %.2x %.2x "
+        "%.2x %.2x %.2x %.2x %.2x\n",
         text[0], text[1], text[2], text[3], text[4], text[5], text[6], text[7],
         text[8], text[9], text[10], text[11], text[12], text[13], text[14],
         text[15]);
     printf(
-        "  └─mac  :   0x%.8x 0x%.8x 0x%.8x 0x%.8x 0x%.8x 0x%.8x 0x%.8x "
-        "0x%.8x 0x%.8x 0x%.8x 0x%.8x 0x%.8x 0x%.8x 0x%.8x 0x%.8x 0x%.8x\n",
+        "  └─mac  :   %.2x %.2x %.2x %.2x %.2x %.2x %.2x %.2x %.2x %.2x %.2x "
+        "%.2x %.2x %.2x %.2x %.2x %.2x %.2x %.2x %.2x %.2x %.2x %.2x %.2x %.2x "
+        "%.2x %.2x "
+        "%.2x %.2x %.2x %.2x %.2x\n",
         mac[0], mac[1], mac[2], mac[3], mac[4], mac[5], mac[6], mac[7], mac[8],
-        mac[9], mac[10], mac[11], mac[12], mac[13], mac[14], mac[15]);
+        mac[9], mac[10], mac[11], mac[12], mac[13], mac[14], mac[15], mac[16],
+        mac[17], mac[18], mac[19], mac[20], mac[21], mac[22], mac[23], mac[24],
+        mac[25], mac[26], mac[27], mac[28], mac[29], mac[30], mac[31]);
 
     return 0;
 }

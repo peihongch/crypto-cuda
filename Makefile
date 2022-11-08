@@ -1,10 +1,11 @@
 SUBDIRS = hash
+DISTS = gaes_xts ghmac_sha gxts_hmac gaes_xts-debug ghmac_sha-debug gxts_hmac-debug
 
 all: $(SUBDIRS)
 
 debug: $(SUBDIRS) gaes_xts-debug ghmac_sha-debug
 
-.PHONY: gaes_xts ghmac_sha gxts_hmac gxts_hmac-debug $(SUBDIRS)
+.PHONY: gaes_xts ghmac_sha gxts_hmac $(SUBDIRS)
 
 $(SUBDIRS):
 	$(MAKE) -C $@ $(TARGET)
@@ -29,3 +30,4 @@ gxts_hmac-debug: gxts_hmac.cu hash
 
 clean:
 	$(MAKE) all kv=$(kv) TARGET=clean
+	rm -rf $(DISTS)
