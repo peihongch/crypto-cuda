@@ -167,6 +167,19 @@ typedef struct USHAContext {
 } USHAContext;
 
 /*
+ *  This structure holds context information for incremental
+ *  hashing operations.
+ */
+typedef struct ISHAContext {
+    SHAversion whichSha;    /* which SHA is being used */
+    USHAContext shaContext; /* SHA context */
+    uint8_t tmp[USHAMaxHashSize];
+    uint8_t* state;
+    uint8_t
+        intermediate_hash[USHAMaxHashSize]; /* hold intemediate hash state */
+} ISHAContext;
+
+/*
  *  This structure will hold context information for the HMAC
  *  keyed hashing operation.
  */
@@ -248,6 +261,19 @@ __device__ int USHAResult(USHAContext*,
 __device__ int USHABlockSize(enum SHAversion whichSha);
 __device__ int USHAHashSize(enum SHAversion whichSha);
 __device__ int USHAHashSizeBits(enum SHAversion whichSha);
+/* Incremental hash functions, low level SHA functions is chosen by whichSha */
+__device__ int ISHAReset(ISHAContext*, SHAversion whichSha);
+__device__ int ISHAInput(ISHAContext*,
+                         const uint8_t* bytes,
+                         unsigned int bytecount,
+                         const uint32_t index);
+__device__ int ISHAUpdate(ISHAContext*,
+                          const uint8_t* oldbytes,
+                          const uint8_t* newbytes,
+                          unsigned int bytecount,
+                          const uint32_t index);
+__device__ int ISHAResult(ISHAContext*,
+                          uint8_t Message_Digest[USHAMaxHashSize]);
 
 /*
  * HMAC Keyed-Hashing for Message Authentication, RFC2104,

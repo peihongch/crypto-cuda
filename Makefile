@@ -5,7 +5,7 @@ all: $(SUBDIRS)
 
 debug: $(SUBDIRS) gaes_xts-debug ghmac_sha-debug
 
-.PHONY: gaes_xts ghmac_sha gxts_hmac $(SUBDIRS)
+.PHONY: gaes_xts ghmac_sha gxts_hmac isha $(SUBDIRS)
 
 $(SUBDIRS):
 	$(MAKE) -C $@ $(TARGET)
@@ -27,6 +27,9 @@ gxts_hmac: gxts_hmac.cu hash
 
 gxts_hmac-debug: gxts_hmac.cu hash
 	nvcc -g -G -O3 -rdc=true -Xcompiler -fPIC gxts_hmac.cu hash/sha1.o hash/sha224-256.o hash/sha384-512.o hash/hmac.o hash/usha.o -L /usr/local/cuda/lib -lcudart -o gxts_hmac-debug
+
+isha: hash
+	nvcc -O3 -rdc=true -Xcompiler -fPIC hash/sha1.o hash/sha224-256.o hash/sha384-512.o hash/hmac.o hash/usha.o hash/isha.o -L /usr/local/cuda/lib -lcudart -o isha
 
 clean:
 	$(MAKE) all kv=$(kv) TARGET=clean
