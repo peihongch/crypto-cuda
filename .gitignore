@@ -8,3 +8,8 @@
 hash/shatest
 ghmac_sha
 gaes_xts
+
+.idea
+cmake-build-*
+bin
+build

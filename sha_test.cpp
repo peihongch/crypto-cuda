@@ -28,15 +28,20 @@
  *
  */
 
-#include <ctype.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cctype>
+#include <cstdint>
+#include <cstdio>
+#include <cstring>
+#include <cstdlib>
+
 #include "sha.h"
 
+using namespace cuda;
+
 static int xgetopt(int argc, char** argv, const char* optstring);
+
 extern char* xoptarg;
+
 static int scasecmp(const char* s1, const char* s2);
 /*
  *  Define patterns for testing
@@ -213,11 +218,13 @@ static int scasecmp(const char* s1, const char* s2);
 #define length(x) (sizeof(x) - 1)
 
 /* Test arrays for hashes. */
-struct hash {
+struct hash
+{
     const char* name;
     SHAversion whichSha;
     int hashsize;
-    struct {
+    struct
+    {
         const char* testarray;
         int length;
         long repeatcount;
@@ -233,29 +240,29 @@ struct hash {
      SHA1HashSize,
      {/* 1 */ {TEST1, length(TEST1), 1, 0, 0,
                "A9993E364706816ABA3E25717850C26C9CD0D89D"},
-      /* 2 */
-      {TEST2_1, length(TEST2_1), 1, 0, 0,
-       "84983E441C3BD26EBAAE4AA1F95129E5E54670F1"},
-      /* 3 */
-      {TEST3, length(TEST3), 1000000, 0, 0,
-       "34AA973CD4C4DAA4F61EEB2BDBAD27316534016F"},
-      /* 4 */
-      {TEST4, length(TEST4), 10, 0, 0,
-       "DEA356A2CDDD90C7A7ECEDC5EBB563934F460452"},
-      /* 5 */ {"", 0, 0, 0x98, 5, "29826B003B906E660EFF4027CE98AF3531AC75BA"},
-      /* 6 */ {"\x5e", 1, 1, 0, 0, "5E6F80A34A9798CAFC6A5DB96CC57BA4C4DB59C2"},
-      /* 7 */
-      {TEST7_1, length(TEST7_1), 1, 0x80, 3,
-       "6239781E03729919C01955B3FFA8ACB60B988340"},
-      /* 8 */
-      {TEST8_1, length(TEST8_1), 1, 0, 0,
-       "82ABFF6605DBE1C17DEF12A394FA22A82B544A35"},
-      /* 9 */
-      {TEST9_1, length(TEST9_1), 1, 0xE0, 3,
-       "8C5B2A5DDAE5A97FC7F9D85661C672ADBF7933D4"},
-      /* 10 */
-      {TEST10_1, length(TEST10_1), 1, 0, 0,
-       "CB0082C8F197D260991BA6A460E76E202BAD27B3"}},
+         /* 2 */
+              {TEST2_1, length(TEST2_1), 1, 0, 0,
+               "84983E441C3BD26EBAAE4AA1F95129E5E54670F1"},
+         /* 3 */
+              {TEST3, length(TEST3), 1000000, 0, 0,
+               "34AA973CD4C4DAA4F61EEB2BDBAD27316534016F"},
+         /* 4 */
+              {TEST4, length(TEST4), 10, 0, 0,
+               "DEA356A2CDDD90C7A7ECEDC5EBB563934F460452"},
+         /* 5 */ {"", 0, 0, 0x98, 5, "29826B003B906E660EFF4027CE98AF3531AC75BA"},
+         /* 6 */ {"\x5e", 1, 1, 0, 0, "5E6F80A34A9798CAFC6A5DB96CC57BA4C4DB59C2"},
+         /* 7 */
+              {TEST7_1, length(TEST7_1), 1, 0x80, 3,
+               "6239781E03729919C01955B3FFA8ACB60B988340"},
+         /* 8 */
+              {TEST8_1, length(TEST8_1), 1, 0, 0,
+               "82ABFF6605DBE1C17DEF12A394FA22A82B544A35"},
+         /* 9 */
+              {TEST9_1, length(TEST9_1), 1, 0xE0, 3,
+               "8C5B2A5DDAE5A97FC7F9D85661C672ADBF7933D4"},
+         /* 10 */
+              {TEST10_1, length(TEST10_1), 1, 0, 0,
+               "CB0082C8F197D260991BA6A460E76E202BAD27B3"}},
      SHA1_SEED,
      {"E216836819477C7F78E0D843FE4FF1B6D6C14CD4",
       "A2DBC7A5B1C6C0A8BCB7AAA41252A6A7D0690DBC",
@@ -266,33 +273,33 @@ struct hash {
      SHA224HashSize,
      {/* 1 */ {TEST1, length(TEST1), 1, 0, 0,
                "23097D223405D8228642A477BDA255B32AADBCE4BDA0B3F7E36C9DA7"},
-      /* 2 */
-      {TEST2_1, length(TEST2_1), 1, 0, 0,
-       "75388B16512776CC5DBA5DA1FD890150B0C6455CB4F58B1952522525"},
-      /* 3 */
-      {TEST3, length(TEST3), 1000000, 0, 0,
-       "20794655980C91D8BBB4C1EA97618A4BF03F42581948B2EE4EE7AD67"},
-      /* 4 */
-      {TEST4, length(TEST4), 10, 0, 0,
-       "567F69F168CD7844E65259CE658FE7AADFA25216E68ECA0EB7AB8262"},
-      /* 5 */
-      {"", 0, 0, 0x68, 5,
-       "E3B048552C3C387BCAB37F6EB06BB79B96A4AEE5FF27F51531A9551C"},
-      /* 6 */
-      {"\x07", 1, 1, 0, 0,
-       "00ECD5F138422B8AD74C9799FD826C531BAD2FCABC7450BEE2AA8C2A"},
-      /* 7 */
-      {TEST7_224, length(TEST7_224), 1, 0xA0, 3,
-       "1B01DB6CB4A9E43DED1516BEB3DB0B87B6D1EA43187462C608137150"},
-      /* 8 */
-      {TEST8_224, length(TEST8_224), 1, 0, 0,
-       "DF90D78AA78821C99B40BA4C966921ACCD8FFB1E98AC388E56191DB1"},
-      /* 9 */
-      {TEST9_224, length(TEST9_224), 1, 0xE0, 3,
-       "54BEA6EAB8195A2EB0A7906A4B4A876666300EEFBD1F3B8474F9CD57"},
-      /* 10 */
-      {TEST10_224, length(TEST10_224), 1, 0, 0,
-       "0B31894EC8937AD9B91BDFBCBA294D9ADEFAA18E09305E9F20D5C3A4"}},
+         /* 2 */
+              {TEST2_1, length(TEST2_1), 1, 0, 0,
+               "75388B16512776CC5DBA5DA1FD890150B0C6455CB4F58B1952522525"},
+         /* 3 */
+              {TEST3, length(TEST3), 1000000, 0, 0,
+               "20794655980C91D8BBB4C1EA97618A4BF03F42581948B2EE4EE7AD67"},
+         /* 4 */
+              {TEST4, length(TEST4), 10, 0, 0,
+               "567F69F168CD7844E65259CE658FE7AADFA25216E68ECA0EB7AB8262"},
+         /* 5 */
+              {"", 0, 0, 0x68, 5,
+               "E3B048552C3C387BCAB37F6EB06BB79B96A4AEE5FF27F51531A9551C"},
+         /* 6 */
+              {"\x07", 1, 1, 0, 0,
+               "00ECD5F138422B8AD74C9799FD826C531BAD2FCABC7450BEE2AA8C2A"},
+         /* 7 */
+              {TEST7_224, length(TEST7_224), 1, 0xA0, 3,
+               "1B01DB6CB4A9E43DED1516BEB3DB0B87B6D1EA43187462C608137150"},
+         /* 8 */
+              {TEST8_224, length(TEST8_224), 1, 0, 0,
+               "DF90D78AA78821C99B40BA4C966921ACCD8FFB1E98AC388E56191DB1"},
+         /* 9 */
+              {TEST9_224, length(TEST9_224), 1, 0xE0, 3,
+               "54BEA6EAB8195A2EB0A7906A4B4A876666300EEFBD1F3B8474F9CD57"},
+         /* 10 */
+              {TEST10_224, length(TEST10_224), 1, 0, 0,
+               "0B31894EC8937AD9B91BDFBCBA294D9ADEFAA18E09305E9F20D5C3A4"}},
      SHA224_SEED,
      {"100966A5B4FDE0B42E2A6C5953D4D7F41BA7CF79FD"
       "2DF431416734BE",
@@ -310,41 +317,41 @@ struct hash {
                   "BA7816BF8F01CFEA4141"
                   "40DE5DAE2223B00361A396177A9CB410FF61F20015AD"},
          /* 2 */
-         {TEST2_1, length(TEST2_1), 1, 0, 0,
-          "248D6A61D20638B8"
-          "E5C026930C3E6039A33CE45964FF2167F6ECEDD419DB06C1"},
+                 {TEST2_1, length(TEST2_1), 1, 0, 0,
+                  "248D6A61D20638B8"
+                  "E5C026930C3E6039A33CE45964FF2167F6ECEDD419DB06C1"},
          /* 3 */
-         {TEST3, length(TEST3), 1000000, 0, 0,
-          "CDC76E5C9914FB92"
-          "81A1C7E284D73E67F1809A48A497200E046D39CCC7112CD0"},
+                 {TEST3, length(TEST3), 1000000, 0, 0,
+                  "CDC76E5C9914FB92"
+                  "81A1C7E284D73E67F1809A48A497200E046D39CCC7112CD0"},
          /* 4 */
-         {TEST4, length(TEST4), 10, 0, 0,
-          "594847328451BDFA"
-          "85056225462CC1D867D877FB388DF0CE35F25AB5562BFBB5"},
+                 {TEST4, length(TEST4), 10, 0, 0,
+                  "594847328451BDFA"
+                  "85056225462CC1D867D877FB388DF0CE35F25AB5562BFBB5"},
          /* 5 */
-         {"", 0, 0, 0x68, 5,
-          "D6D3E02A31A84A8CAA9718ED6C2057BE"
-          "09DB45E7823EB5079CE7A573A3760F95"},
+                 {"", 0, 0, 0x68, 5,
+                  "D6D3E02A31A84A8CAA9718ED6C2057BE"
+                  "09DB45E7823EB5079CE7A573A3760F95"},
          /* 6 */
-         {"\x19", 1, 1, 0, 0,
-          "68AA2E2EE5DFF96E3355E6C7EE373E3D"
-          "6A4E17F75F9518D843709C0C9BC3E3D4"},
+                 {"\x19", 1, 1, 0, 0,
+                  "68AA2E2EE5DFF96E3355E6C7EE373E3D"
+                  "6A4E17F75F9518D843709C0C9BC3E3D4"},
          /* 7 */
-         {TEST7_256, length(TEST7_256), 1, 0x60, 3,
-          "77EC1DC8"
-          "9C821FF2A1279089FA091B35B8CD960BCAF7DE01C6A7680756BEB972"},
+                 {TEST7_256, length(TEST7_256), 1, 0x60, 3,
+                  "77EC1DC8"
+                  "9C821FF2A1279089FA091B35B8CD960BCAF7DE01C6A7680756BEB972"},
          /* 8 */
-         {TEST8_256, length(TEST8_256), 1, 0, 0,
-          "175EE69B02BA"
-          "9B58E2B0A5FD13819CEA573F3940A94F825128CF4209BEABB4E8"},
+                 {TEST8_256, length(TEST8_256), 1, 0, 0,
+                  "175EE69B02BA"
+                  "9B58E2B0A5FD13819CEA573F3940A94F825128CF4209BEABB4E8"},
          /* 9 */
-         {TEST9_256, length(TEST9_256), 1, 0xA0, 3,
-          "3E9AD646"
-          "8BBBAD2AC3C2CDC292E018BA5FD70B960CF1679777FCE708FDB066E9"},
+                 {TEST9_256, length(TEST9_256), 1, 0xA0, 3,
+                  "3E9AD646"
+                  "8BBBAD2AC3C2CDC292E018BA5FD70B960CF1679777FCE708FDB066E9"},
          /* 10 */
-         {TEST10_256, length(TEST10_256), 1, 0, 0,
-          "97DBCA7D"
-          "F46D62C8A422C941DD7E835B8AD3361763F7E9B2D95F4F0DA6E1CCBC"},
+                 {TEST10_256, length(TEST10_256), 1, 0, 0,
+                  "97DBCA7D"
+                  "F46D62C8A422C941DD7E835B8AD3361763F7E9B2D95F4F0DA6E1CCBC"},
      },
      SHA256_SEED,
      {"83D28614D49C3ADC1D6FC05DB5F48037C056F8D2A4CE44"
@@ -361,42 +368,42 @@ struct hash {
      {/* 1 */ {TEST1, length(TEST1), 1, 0, 0,
                "CB00753F45A35E8BB5A03D699AC65007272C32AB0EDED163"
                "1A8B605A43FF5BED8086072BA1E7CC2358BAECA134C825A7"},
-      /* 2 */
-      {TEST2_2, length(TEST2_2), 1, 0, 0,
-       "09330C33F71147E83D192FC782CD1B4753111B173B3B05D2"
-       "2FA08086E3B0F712FCC7C71A557E2DB966C3E9FA91746039"},
-      /* 3 */
-      {TEST3, length(TEST3), 1000000, 0, 0,
-       "9D0E1809716474CB086E834E310A4A1CED149E9C00F24852"
-       "7972CEC5704C2A5B07B8B3DC38ECC4EBAE97DDD87F3D8985"},
-      /* 4 */
-      {TEST4, length(TEST4), 10, 0, 0,
-       "2FC64A4F500DDB6828F6A3430B8DD72A368EB7F3A8322A70"
-       "BC84275B9C0B3AB00D27A5CC3C2D224AA6B61A0D79FB4596"},
-      /* 5 */
-      {"", 0, 0, 0x10, 5,
-       "8D17BE79E32B6718E07D8A603EB84BA0478F7FCFD1BB9399"
-       "5F7D1149E09143AC1FFCFC56820E469F3878D957A15A3FE4"},
-      /* 6 */
-      {"\xb9", 1, 1, 0, 0,
-       "BC8089A19007C0B14195F4ECC74094FEC64F01F90929282C"
-       "2FB392881578208AD466828B1C6C283D2722CF0AD1AB6938"},
-      /* 7 */
-      {TEST7_384, length(TEST7_384), 1, 0xA0, 3,
-       "D8C43B38E12E7C42A7C9B810299FD6A770BEF30920F17532"
-       "A898DE62C7A07E4293449C0B5FA70109F0783211CFC4BCE3"},
-      /* 8 */
-      {TEST8_384, length(TEST8_384), 1, 0, 0,
-       "C9A68443A005812256B8EC76B00516F0DBB74FAB26D66591"
-       "3F194B6FFB0E91EA9967566B58109CBC675CC208E4C823F7"},
-      /* 9 */
-      {TEST9_384, length(TEST9_384), 1, 0xE0, 3,
-       "5860E8DE91C21578BB4174D227898A98E0B45C4C760F0095"
-       "49495614DAEDC0775D92D11D9F8CE9B064EEAC8DAFC3A297"},
-      /* 10 */
-      {TEST10_384, length(TEST10_384), 1, 0, 0,
-       "4F440DB1E6EDD2899FA335F09515AA025EE177A79F4B4AAF"
-       "38E42B5C4DE660F5DE8FB2A5B2FBD2A3CBFFD20CFF1288C0"}},
+         /* 2 */
+              {TEST2_2, length(TEST2_2), 1, 0, 0,
+               "09330C33F71147E83D192FC782CD1B4753111B173B3B05D2"
+               "2FA08086E3B0F712FCC7C71A557E2DB966C3E9FA91746039"},
+         /* 3 */
+              {TEST3, length(TEST3), 1000000, 0, 0,
+               "9D0E1809716474CB086E834E310A4A1CED149E9C00F24852"
+               "7972CEC5704C2A5B07B8B3DC38ECC4EBAE97DDD87F3D8985"},
+         /* 4 */
+              {TEST4, length(TEST4), 10, 0, 0,
+               "2FC64A4F500DDB6828F6A3430B8DD72A368EB7F3A8322A70"
+               "BC84275B9C0B3AB00D27A5CC3C2D224AA6B61A0D79FB4596"},
+         /* 5 */
+              {"", 0, 0, 0x10, 5,
+               "8D17BE79E32B6718E07D8A603EB84BA0478F7FCFD1BB9399"
+               "5F7D1149E09143AC1FFCFC56820E469F3878D957A15A3FE4"},
+         /* 6 */
+              {"\xb9", 1, 1, 0, 0,
+               "BC8089A19007C0B14195F4ECC74094FEC64F01F90929282C"
+               "2FB392881578208AD466828B1C6C283D2722CF0AD1AB6938"},
+         /* 7 */
+              {TEST7_384, length(TEST7_384), 1, 0xA0, 3,
+               "D8C43B38E12E7C42A7C9B810299FD6A770BEF30920F17532"
+               "A898DE62C7A07E4293449C0B5FA70109F0783211CFC4BCE3"},
+         /* 8 */
+              {TEST8_384, length(TEST8_384), 1, 0, 0,
+               "C9A68443A005812256B8EC76B00516F0DBB74FAB26D66591"
+               "3F194B6FFB0E91EA9967566B58109CBC675CC208E4C823F7"},
+         /* 9 */
+              {TEST9_384, length(TEST9_384), 1, 0xE0, 3,
+               "5860E8DE91C21578BB4174D227898A98E0B45C4C760F0095"
+               "49495614DAEDC0775D92D11D9F8CE9B064EEAC8DAFC3A297"},
+         /* 10 */
+              {TEST10_384, length(TEST10_384), 1, 0, 0,
+               "4F440DB1E6EDD2899FA335F09515AA025EE177A79F4B4AAF"
+               "38E42B5C4DE660F5DE8FB2A5B2FBD2A3CBFFD20CFF1288C0"}},
      SHA384_SEED,
      {"CE44D7D63AE0C91482998CF662A51EC80BF6FC68661A3C"
       "57F87566112BD635A743EA904DEB7D7A42AC808CABE697F38F",
@@ -412,71 +419,66 @@ struct hash {
      SHA512,
      SHA512HashSize,
      {/* 1 */
-      {TEST1, length(TEST1), 1, 0, 0,
-       "DDAF35A193617ABACC417349AE20413112E6FA4E89A97EA2"
-       "0A9EEEE64B55D39A2192992A274FC1A836BA3C23A3FEEBBD"
-       "454D4423643CE80E2A9AC94FA54CA49F"},
-      /* 2 */
-      {TEST2_2, length(TEST2_2), 1, 0, 0,
-       "8E959B75DAE313DA8CF4F72814FC143F8F7779C6EB9F7FA1"
-       "7299AEADB6889018501D289E4900F7E4331B99DEC4B5433A"
-       "C7D329EEB6DD26545E96E55B874BE909"},
-      /* 3 */
-      {TEST3, length(TEST3), 1000000, 0, 0,
-       "E718483D0CE769644E2E42C7BC15B4638E1F98B13B204428"
-       "5632A803AFA973EBDE0FF244877EA60A4CB0432CE577C31B"
-       "EB009C5C2C49AA2E4EADB217AD8CC09B"},
-      /* 4 */
-      {TEST4, length(TEST4), 10, 0, 0,
-       "89D05BA632C699C31231DED4FFC127D5A894DAD412C0E024"
-       "DB872D1ABD2BA8141A0F85072A9BE1E2AA04CF33C765CB51"
-       "0813A39CD5A84C4ACAA64D3F3FB7BAE9"},
-      /* 5 */
-      {"", 0, 0, 0xB0, 5,
-       "D4EE29A9E90985446B913CF1D1376C836F4BE2C1CF3CADA0"
-       "720A6BF4857D886A7ECB3C4E4C0FA8C7F95214E41DC1B0D2"
-       "1B22A84CC03BF8CE4845F34DD5BDBAD4"},
-      /* 6 */
-      {"\xD0", 1, 1, 0, 0,
-       "9992202938E882E73E20F6B69E68A0A7149090423D93C81B"
-       "AB3F21678D4ACEEEE50E4E8CAFADA4C85A54EA8306826C4A"
-       "D6E74CECE9631BFA8A549B4AB3FBBA15"},
-      /* 7 */
-      {TEST7_512, length(TEST7_512), 1, 0x80, 3,
-       "ED8DC78E8B01B69750053DBB7A0A9EDA0FB9E9D292B1ED71"
-       "5E80A7FE290A4E16664FD913E85854400C5AF05E6DAD316B"
-       "7359B43E64F8BEC3C1F237119986BBB6"},
-      /* 8 */
-      {TEST8_512, length(TEST8_512), 1, 0, 0,
-       "CB0B67A4B8712CD73C9AABC0B199E9269B20844AFB75ACBD"
-       "D1C153C9828924C3DDEDAAFE669C5FDD0BC66F630F677398"
-       "8213EB1B16F517AD0DE4B2F0C95C90F8"},
-      /* 9 */
-      {TEST9_512, length(TEST9_512), 1, 0x80, 3,
-       "32BA76FC30EAA0208AEB50FFB5AF1864FDBF17902A4DC0A6"
-       "82C61FCEA6D92B783267B21080301837F59DE79C6B337DB2"
-       "526F8A0A510E5E53CAFED4355FE7C2F1"},
-      /* 10 */
-      {TEST10_512, length(TEST10_512), 1, 0, 0,
-       "C665BEFB36DA189D78822D10528CBF3B12B3EEF726039909"
-       "C1A16A270D48719377966B957A878E720584779A62825C18"
-       "DA26415E49A7176A894E7510FD1451F5"}},
+         {TEST1, length(TEST1), 1, 0, 0,
+          "DDAF35A193617ABACC417349AE20413112E6FA4E89A97EA2"
+          "0A9EEEE64B55D39A2192992A274FC1A836BA3C23A3FEEBBD"
+          "454D4423643CE80E2A9AC94FA54CA49F"},
+         /* 2 */
+         {TEST2_2, length(TEST2_2), 1, 0, 0,
+          "8E959B75DAE313DA8CF4F72814FC143F8F7779C6EB9F7FA1"
+          "7299AEADB6889018501D289E4900F7E4331B99DEC4B5433A"
+          "C7D329EEB6DD26545E96E55B874BE909"},
+         /* 3 */
+         {TEST3, length(TEST3), 1000000, 0, 0,
+          "E718483D0CE769644E2E42C7BC15B4638E1F98B13B204428"
+          "5632A803AFA973EBDE0FF244877EA60A4CB0432CE577C31B"
+          "EB009C5C2C49AA2E4EADB217AD8CC09B"},
+         /* 4 */
+         {TEST4, length(TEST4), 10, 0, 0,
+          "89D05BA632C699C31231DED4FFC127D5A894DAD412C0E024"
+          "DB872D1ABD2BA8141A0F85072A9BE1E2AA04CF33C765CB51"
+          "0813A39CD5A84C4ACAA64D3F3FB7BAE9"},
+         /* 5 */
+         {"", 0, 0, 0xB0, 5,
+          "D4EE29A9E90985446B913CF1D1376C836F4BE2C1CF3CADA0"
+          "720A6BF4857D886A7ECB3C4E4C0FA8C7F95214E41DC1B0D2"
+          "1B22A84CC03BF8CE4845F34DD5BDBAD4"},
+         /* 6 */
+         {"\xD0", 1, 1, 0, 0,
+          "9992202938E882E73E20F6B69E68A0A7149090423D93C81B"
+          "AB3F21678D4ACEEEE50E4E8CAFADA4C85A54EA8306826C4A"
+          "D6E74CECE9631BFA8A549B4AB3FBBA15"},
+         /* 7 */
+         {TEST7_512, length(TEST7_512), 1, 0x80, 3,
+          "ED8DC78E8B01B69750053DBB7A0A9EDA0FB9E9D292B1ED71"
+          "5E80A7FE290A4E16664FD913E85854400C5AF05E6DAD316B"
+          "7359B43E64F8BEC3C1F237119986BBB6"},
+         /* 8 */
+         {TEST8_512, length(TEST8_512), 1, 0, 0,
+          "CB0B67A4B8712CD73C9AABC0B199E9269B20844AFB75ACBD"
+          "D1C153C9828924C3DDEDAAFE669C5FDD0BC66F630F677398"
+          "8213EB1B16F517AD0DE4B2F0C95C90F8"},
+         /* 9 */
+         {TEST9_512, length(TEST9_512), 1, 0x80, 3,
+          "32BA76FC30EAA0208AEB50FFB5AF1864FDBF17902A4DC0A6"
+          "82C61FCEA6D92B783267B21080301837F59DE79C6B337DB2"
+          "526F8A0A510E5E53CAFED4355FE7C2F1"},
+         /* 10 */
+         {TEST10_512, length(TEST10_512), 1, 0, 0,
+          "C665BEFB36DA189D78822D10528CBF3B12B3EEF726039909"
+          "C1A16A270D48719377966B957A878E720584779A62825C18"
+          "DA26415E49A7176A894E7510FD1451F5"}},
      SHA512_SEED,
-     {"2FBB1E7E00F746BA514FBC8C421F36792EC0E11FF5EFC3"
-      "78E1AB0C079AA5F0F66A1E3EDBAEB4F9984BE14437123038A452004A5576"
-      "8C1FD8EED49E4A21BEDCD0",
-      "25CBE5A4F2C7B1D7EF07011705D50C62C5"
-      "000594243EAFD1241FC9F3D22B58184AE2FEE38E171CF8129E29459C9BC2"
-      "EF461AF5708887315F15419D8D17FE7949",
-      "5B8B1F2687555CE2D7182B"
-      "92E5C3F6C36547DA1C13DBB9EA4F73EA4CBBAF89411527906D35B1B06C1B"
-      "6A8007D05EC66DF0A406066829EAB618BDE3976515AAFC",
-      "46E36B007D"
-      "19876CDB0B29AD074FE3C08CDD174D42169D6ABE5A1414B6E79707DF5877"
-      "6A98091CF431854147BB6D3C66D43BFBC108FD715BDE6AA127C2B0E79F"}}};
+     {"2FBB1E7E00F746BA514FBC8C421F36792EC0E11FF5EFC378E1AB0C079AA5F0F66A1E3EDBAEB4F9984BE14437123038A452004A55768C1FD8EED49E4A21BEDCD0",
+      "25CBE5A4F2C7B1D7EF07011705D50C62C5000594243EAFD1241FC9F3D22B58184AE2FEE38E171CF8129E29459C9BC2EF461AF5708887315F15419D8D17FE7949",
+      "5B8B1F2687555CE2D7182B92E5C3F6C36547DA1C13DBB9EA4F73EA4CBBAF89411527906D35B1B06C1B6A8007D05EC66DF0A406066829EAB618BDE3976515AAFC",
+      "46E36B007D19876CDB0B29AD074FE3C08CDD174D42169D6ABE5A1414B6E79707DF58776A98091CF431854147BB6D3C66D43BFBC108FD715BDE6AA127C2B0E79F"}
+    }
+};
 
 /* Test arrays for HMAC. */
-struct hmachash {
+struct hmachash
+{
     const char* keyarray[5];
     int keylength[5];
     const char* dataarray[5];
@@ -484,120 +486,118 @@ struct hmachash {
     const char* resultarray[5];
     int resultlength[5];
 } hmachashes[HMACTESTCOUNT] = {
-    {/* 1 */ {"\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b"
-              "\x0b\x0b\x0b\x0b\x0b"},
-     {20},
-     {
-         "\x48\x69\x20\x54\x68\x65\x72\x65" /* "Hi There" */
-     },
-     {8},
-     {/* HMAC-SHA-1 */
-      "B617318655057264E28BC0B6FB378C8EF146BE00",
-      /* HMAC-SHA-224 */
-      "896FB1128ABBDF196832107CD49DF33F47B4B1169912BA4F53684B22",
-      /* HMAC-SHA-256 */
-      "B0344C61D8DB38535CA8AFCEAF0BF12B881DC200C9833DA726E9376C2E32"
-      "CFF7",
-      /* HMAC-SHA-384 */
-      "AFD03944D84895626B0825F4AB46907F15F9DADBE4101EC682AA034C7CEB"
-      "C59CFAEA9EA9076EDE7F4AF152E8B2FA9CB6",
-      /* HMAC-SHA-512 */
-      "87AA7CDEA5EF619D4FF0B4241A1D6CB02379F4E2CE4EC2787AD0B30545E1"
-      "7CDEDAA833B7D6B8A702038B274EAEA3F4E4BE9D914EEB61F1702E696C20"
-      "3A126854"},
-     {SHA1HashSize, SHA224HashSize, SHA256HashSize, SHA384HashSize,
-      SHA512HashSize}},
+    {/* 1 */ {"\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b"},
+             {20},
+             {
+                 R"(Hi There)" /* "Hi There" */
+             },
+             {8},
+             {/* HMAC-SHA-1 */
+                 "B617318655057264E28BC0B6FB378C8EF146BE00",
+                 /* HMAC-SHA-224 */
+                 "896FB1128ABBDF196832107CD49DF33F47B4B1169912BA4F53684B22",
+                 /* HMAC-SHA-256 */
+                 "B0344C61D8DB38535CA8AFCEAF0BF12B881DC200C9833DA726E9376C2E32"
+                 "CFF7",
+                 /* HMAC-SHA-384 */
+                 "AFD03944D84895626B0825F4AB46907F15F9DADBE4101EC682AA034C7CEB"
+                 "C59CFAEA9EA9076EDE7F4AF152E8B2FA9CB6",
+                 /* HMAC-SHA-512 */
+                 "87AA7CDEA5EF619D4FF0B4241A1D6CB02379F4E2CE4EC2787AD0B30545E1"
+                 "7CDEDAA833B7D6B8A702038B274EAEA3F4E4BE9D914EEB61F1702E696C20"
+                 "3A126854"},
+             {SHA1HashSize, SHA224HashSize, SHA256HashSize, SHA384HashSize, SHA512HashSize}
+    },
     {/* 2 */ {
-         "\x4a\x65\x66\x65" /* "Jefe" */
-     },
-     {4},
-     {
-         "\x77\x68\x61\x74\x20\x64\x6f\x20\x79\x61\x20\x77\x61\x6e\x74"
-         "\x20\x66\x6f\x72\x20\x6e\x6f\x74\x68\x69\x6e\x67\x3f"
-         /* "what do ya want for nothing?" */
-     },
-     {28},
-     {/* HMAC-SHA-1 */
-      "EFFCDF6AE5EB2FA2D27416D5F184DF9C259A7C79",
-      /* HMAC-SHA-224 */
-      "A30E01098BC6DBBF45690F3A7E9E6D0F8BBEA2A39E6148008FD05E44",
-      /* HMAC-SHA-256 */
-      "5BDCC146BF60754E6A042426089575C75A003F089D2739839DEC58B964EC"
-      "3843",
-      /* HMAC-SHA-384 */
-      "AF45D2E376484031617F78D2B58A6B1B9C7EF464F5A01B47E42EC3736322"
-      "445E8E2240CA5E69E2C78B3239ECFAB21649",
-      /* HMAC-SHA-512 */
-      "164B7A7BFCF819E2E395FBE73B56E0A387BD64222E831FD610270CD7EA25"
-      "05549758BF75C05A994A6D034F65F8F0E6FDCAEAB1A34D4A6B4B636E070A"
-      "38BCE737"},
-     {SHA1HashSize, SHA224HashSize, SHA256HashSize, SHA384HashSize,
-      SHA512HashSize}},
+                 R"(Jefe)" /* "Jefe" */
+             },
+             {4},
+             {
+                 R"(what do ya want for nothing?)"
+                 /* "what do ya want for nothing?" */
+             },
+             {28},
+             {/* HMAC-SHA-1 */
+                 "EFFCDF6AE5EB2FA2D27416D5F184DF9C259A7C79",
+                 /* HMAC-SHA-224 */
+                 "A30E01098BC6DBBF45690F3A7E9E6D0F8BBEA2A39E6148008FD05E44",
+                 /* HMAC-SHA-256 */
+                 "5BDCC146BF60754E6A042426089575C75A003F089D2739839DEC58B964EC"
+                 "3843",
+                 /* HMAC-SHA-384 */
+                 "AF45D2E376484031617F78D2B58A6B1B9C7EF464F5A01B47E42EC3736322"
+                 "445E8E2240CA5E69E2C78B3239ECFAB21649",
+                 /* HMAC-SHA-512 */
+                 "164B7A7BFCF819E2E395FBE73B56E0A387BD64222E831FD610270CD7EA25"
+                 "05549758BF75C05A994A6D034F65F8F0E6FDCAEAB1A34D4A6B4B636E070A"
+                 "38BCE737"},
+             {SHA1HashSize, SHA224HashSize, SHA256HashSize, SHA384HashSize, SHA512HashSize}
+    },
     {/* 3 */
-     {"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
-      "\xaa\xaa\xaa\xaa\xaa"},
-     {20},
-     {"\xdd\xdd\xdd\xdd\xdd\xdd\xdd\xdd\xdd\xdd\xdd\xdd\xdd\xdd\xdd"
-      "\xdd\xdd\xdd\xdd\xdd\xdd\xdd\xdd\xdd\xdd\xdd\xdd\xdd\xdd\xdd"
-      "\xdd\xdd\xdd\xdd\xdd\xdd\xdd\xdd\xdd\xdd\xdd\xdd\xdd\xdd\xdd"
-      "\xdd\xdd\xdd\xdd\xdd"},
-     {50},
-     {/* HMAC-SHA-1 */
-      "125D7342B9AC11CD91A39AF48AA17B4F63F175D3",
-      /* HMAC-SHA-224 */
-      "7FB3CB3588C6C1F6FFA9694D7D6AD2649365B0C1F65D69D1EC8333EA",
-      /* HMAC-SHA-256 */
-      "773EA91E36800E46854DB8EBD09181A72959098B3EF8C122D9635514CED5"
-      "65FE",
-      /* HMAC-SHA-384 */
-      "88062608D3E6AD8A0AA2ACE014C8A86F0AA635D947AC9FEBE83EF4E55966"
-      "144B2A5AB39DC13814B94E3AB6E101A34F27",
-      /* HMAC-SHA-512 */
-      "FA73B0089D56A284EFB0F0756C890BE9B1B5DBDD8EE81A3655F83E33B227"
-      "9D39BF3E848279A722C806B485A47E67C807B946A337BEE8942674278859"
-      "E13292FB"},
-     {SHA1HashSize, SHA224HashSize, SHA256HashSize, SHA384HashSize,
-      SHA512HashSize}},
+            {"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
+             "\xaa\xaa\xaa\xaa\xaa"},
+            {20},
+            {"\xdd\xdd\xdd\xdd\xdd\xdd\xdd\xdd\xdd\xdd\xdd\xdd\xdd\xdd\xdd"
+             "\xdd\xdd\xdd\xdd\xdd\xdd\xdd\xdd\xdd\xdd\xdd\xdd\xdd\xdd\xdd"
+             "\xdd\xdd\xdd\xdd\xdd\xdd\xdd\xdd\xdd\xdd\xdd\xdd\xdd\xdd\xdd"
+             "\xdd\xdd\xdd\xdd\xdd"},
+            {50},
+            {/* HMAC-SHA-1 */
+                "125D7342B9AC11CD91A39AF48AA17B4F63F175D3",
+                /* HMAC-SHA-224 */
+                "7FB3CB3588C6C1F6FFA9694D7D6AD2649365B0C1F65D69D1EC8333EA",
+                /* HMAC-SHA-256 */
+                "773EA91E36800E46854DB8EBD09181A72959098B3EF8C122D9635514CED5"
+                "65FE",
+                /* HMAC-SHA-384 */
+                "88062608D3E6AD8A0AA2ACE014C8A86F0AA635D947AC9FEBE83EF4E55966"
+                "144B2A5AB39DC13814B94E3AB6E101A34F27",
+                /* HMAC-SHA-512 */
+                "FA73B0089D56A284EFB0F0756C890BE9B1B5DBDD8EE81A3655F83E33B227"
+                "9D39BF3E848279A722C806B485A47E67C807B946A337BEE8942674278859"
+                "E13292FB"},
+            {SHA1HashSize, SHA224HashSize, SHA256HashSize, SHA384HashSize, SHA512HashSize}
+    },
     {/* 4 */ {"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f"
               "\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19"},
-     {25},
-     {"\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd"
-      "\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd"
-      "\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd"
-      "\xcd\xcd\xcd\xcd\xcd"},
-     {50},
-     {/* HMAC-SHA-1 */
-      "4C9007F4026250C6BC8414F9BF50C86C2D7235DA",
-      /* HMAC-SHA-224 */
-      "6C11506874013CAC6A2ABC1BB382627CEC6A90D86EFC012DE7AFEC5A",
-      /* HMAC-SHA-256 */
-      "82558A389A443C0EA4CC819899F2083A85F0FAA3E578F8077A2E3FF46729"
-      "665B",
-      /* HMAC-SHA-384 */
-      "3E8A69B7783C25851933AB6290AF6CA77A9981480850009CC5577C6E1F57"
-      "3B4E6801DD23C4A7D679CCF8A386C674CFFB",
-      /* HMAC-SHA-512 */
-      "B0BA465637458C6990E5A8C5F61D4AF7E576D97FF94B872DE76F8050361E"
-      "E3DBA91CA5C11AA25EB4D679275CC5788063A5F19741120C4F2DE2ADEBEB"
-      "10A298DD"},
-     {SHA1HashSize, SHA224HashSize, SHA256HashSize, SHA384HashSize,
-      SHA512HashSize}},
+             {25},
+             {"\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd"
+              "\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd"
+              "\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd"
+              "\xcd\xcd\xcd\xcd\xcd"},
+             {50},
+             {/* HMAC-SHA-1 */
+                 "4C9007F4026250C6BC8414F9BF50C86C2D7235DA",
+                 /* HMAC-SHA-224 */
+                 "6C11506874013CAC6A2ABC1BB382627CEC6A90D86EFC012DE7AFEC5A",
+                 /* HMAC-SHA-256 */
+                 "82558A389A443C0EA4CC819899F2083A85F0FAA3E578F8077A2E3FF46729"
+                 "665B",
+                 /* HMAC-SHA-384 */
+                 "3E8A69B7783C25851933AB6290AF6CA77A9981480850009CC5577C6E1F57"
+                 "3B4E6801DD23C4A7D679CCF8A386C674CFFB",
+                 /* HMAC-SHA-512 */
+                 "B0BA465637458C6990E5A8C5F61D4AF7E576D97FF94B872DE76F8050361E"
+                 "E3DBA91CA5C11AA25EB4D679275CC5788063A5F19741120C4F2DE2ADEBEB"
+                 "10A298DD"},
+             {SHA1HashSize, SHA224HashSize, SHA256HashSize, SHA384HashSize, SHA512HashSize}
+    },
     {/* 5 */ {"\x0c\x0c\x0c\x0c\x0c\x0c\x0c\x0c\x0c\x0c\x0c\x0c\x0c\x0c\x0c"
               "\x0c\x0c\x0c\x0c\x0c"},
-     {20},
-     {"Test With Truncation"},
-     {20},
-     {/* HMAC-SHA-1 */
-      "4C1A03424B55E07FE7F27BE1",
-      /* HMAC-SHA-224 */
-      "0E2AEA68A90C8D37C988BCDB9FCA6FA8",
-      /* HMAC-SHA-256 */
-      "A3B6167473100EE06E0C796C2955552B",
-      /* HMAC-SHA-384 */
-      "3ABF34C3503B2A23A46EFC619BAEF897",
-      /* HMAC-SHA-512 */
-      "415FAD6271580A531D4179BC891D87A6"},
-     {12, 16, 16, 16, 16}},
+             {20},
+             {"Test With Truncation"},
+             {20},
+             {/* HMAC-SHA-1 */
+                 "4C1A03424B55E07FE7F27BE1",
+                 /* HMAC-SHA-224 */
+                 "0E2AEA68A90C8D37C988BCDB9FCA6FA8",
+                 /* HMAC-SHA-256 */
+                 "A3B6167473100EE06E0C796C2955552B",
+                 /* HMAC-SHA-384 */
+                 "3ABF34C3503B2A23A46EFC619BAEF897",
+                 /* HMAC-SHA-512 */
+                 "415FAD6271580A531D4179BC891D87A6"},
+             {12, 16, 16, 16, 16}},
     {/* 6 */ {"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
               "\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
               "\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
@@ -607,25 +607,25 @@ struct hmachash {
               "\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
               "\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
               "\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"},
-     {80, 131},
-     {"Test Using Larger Than Block-Size Key - Hash Key First"},
-     {54},
-     {/* HMAC-SHA-1 */
-      "AA4AE5E15272D00E95705637CE8A3B55ED402112",
-      /* HMAC-SHA-224 */
-      "95E9A0DB962095ADAEBE9B2D6F0DBCE2D499F112F2D2B7273FA6870E",
-      /* HMAC-SHA-256 */
-      "60E431591EE0B67F0D8A26AACBF5B77F8E0BC6213728C5140546040F0EE3"
-      "7F54",
-      /* HMAC-SHA-384 */
-      "4ECE084485813E9088D2C63A041BC5B44F9EF1012A2B588F3CD11F05033A"
-      "C4C60C2EF6AB4030FE8296248DF163F44952",
-      /* HMAC-SHA-512 */
-      "80B24263C7C1A3EBB71493C1DD7BE8B49B46D1F41B4AEEC1121B013783F8"
-      "F3526B56D037E05F2598BD0FD2215D6A1E5295E64F73F63F0AEC8B915A98"
-      "5D786598"},
-     {SHA1HashSize, SHA224HashSize, SHA256HashSize, SHA384HashSize,
-      SHA512HashSize}},
+             {80, 131},
+             {"Test Using Larger Than Block-Size Key - Hash Key First"},
+             {54},
+             {/* HMAC-SHA-1 */
+                 "AA4AE5E15272D00E95705637CE8A3B55ED402112",
+                 /* HMAC-SHA-224 */
+                 "95E9A0DB962095ADAEBE9B2D6F0DBCE2D499F112F2D2B7273FA6870E",
+                 /* HMAC-SHA-256 */
+                 "60E431591EE0B67F0D8A26AACBF5B77F8E0BC6213728C5140546040F0EE3"
+                 "7F54",
+                 /* HMAC-SHA-384 */
+                 "4ECE084485813E9088D2C63A041BC5B44F9EF1012A2B588F3CD11F05033A"
+                 "C4C60C2EF6AB4030FE8296248DF163F44952",
+                 /* HMAC-SHA-512 */
+                 "80B24263C7C1A3EBB71493C1DD7BE8B49B46D1F41B4AEEC1121B013783F8"
+                 "F3526B56D037E05F2598BD0FD2215D6A1E5295E64F73F63F0AEC8B915A98"
+                 "5D786598"},
+             {SHA1HashSize, SHA224HashSize, SHA256HashSize, SHA384HashSize, SHA512HashSize}
+    },
     {/* 7 */ {"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
               "\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
               "\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
@@ -635,56 +635,63 @@ struct hmachash {
               "\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
               "\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
               "\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"},
-     {80, 131},
-     {
-         "Test Using Larger Than Block-Size Key and "
-         "Larger Than One Block-Size Data",
-         "\x54\x68\x69\x73\x20\x69\x73\x20\x61\x20\x74\x65\x73\x74\x20"
-         "\x75\x73\x69\x6e\x67\x20\x61\x20\x6c\x61\x72\x67\x65\x72\x20"
-         "\x74\x68\x61\x6e\x20\x62\x6c\x6f\x63\x6b\x2d\x73\x69\x7a\x65"
-         "\x20\x6b\x65\x79\x20\x61\x6e\x64\x20\x61\x20\x6c\x61\x72\x67"
-         "\x65\x72\x20\x74\x68\x61\x6e\x20\x62\x6c\x6f\x63\x6b\x2d\x73"
-         "\x69\x7a\x65\x20\x64\x61\x74\x61\x2e\x20\x54\x68\x65\x20\x6b"
-         "\x65\x79\x20\x6e\x65\x65\x64\x73\x20\x74\x6f\x20\x62\x65\x20"
-         "\x68\x61\x73\x68\x65\x64\x20\x62\x65\x66\x6f\x72\x65\x20\x62"
-         "\x65\x69\x6e\x67\x20\x75\x73\x65\x64\x20\x62\x79\x20\x74\x68"
-         "\x65\x20\x48\x4d\x41\x43\x20\x61\x6c\x67\x6f\x72\x69\x74\x68"
-         "\x6d\x2e"
-         /* "This is a test using a larger than block-size key and a "
-             "larger than block-size data. The key needs to be hashed "
-             "before being used by the HMAC algorithm." */
-     },
-     {73, 152},
-     {/* HMAC-SHA-1 */
-      "E8E99D0F45237D786D6BBAA7965C7808BBFF1A91",
-      /* HMAC-SHA-224 */
-      "3A854166AC5D9F023F54D517D0B39DBD946770DB9C2B95C9F6F565D1",
-      /* HMAC-SHA-256 */
-      "9B09FFA71B942FCB27635FBCD5B0E944BFDC63644F0713938A7F51535C3A"
-      "35E2",
-      /* HMAC-SHA-384 */
-      "6617178E941F020D351E2F254E8FD32C602420FEB0B8FB9ADCCEBB82461E"
-      "99C5A678CC31E799176D3860E6110C46523E",
-      /* HMAC-SHA-512 */
-      "E37B6A775DC87DBAA4DFA9F96E5E3FFDDEBD71F8867289865DF5A32D20CD"
-      "C944B6022CAC3C4982B10D5EEB55C3E4DE15134676FB6DE0446065C97440"
-      "FA8C6A58"},
-     {SHA1HashSize, SHA224HashSize, SHA256HashSize, SHA384HashSize,
-      SHA512HashSize}}};
+             {80, 131},
+             {
+                 "Test Using Larger Than Block-Size Key and "
+                 "Larger Than One Block-Size Data",
+                 "\x54\x68\x69\x73\x20\x69\x73\x20\x61\x20\x74\x65\x73\x74\x20"
+                 "\x75\x73\x69\x6e\x67\x20\x61\x20\x6c\x61\x72\x67\x65\x72\x20"
+                 "\x74\x68\x61\x6e\x20\x62\x6c\x6f\x63\x6b\x2d\x73\x69\x7a\x65"
+                 "\x20\x6b\x65\x79\x20\x61\x6e\x64\x20\x61\x20\x6c\x61\x72\x67"
+                 "\x65\x72\x20\x74\x68\x61\x6e\x20\x62\x6c\x6f\x63\x6b\x2d\x73"
+                 "\x69\x7a\x65\x20\x64\x61\x74\x61\x2e\x20\x54\x68\x65\x20\x6b"
+                 "\x65\x79\x20\x6e\x65\x65\x64\x73\x20\x74\x6f\x20\x62\x65\x20"
+                 "\x68\x61\x73\x68\x65\x64\x20\x62\x65\x66\x6f\x72\x65\x20\x62"
+                 "\x65\x69\x6e\x67\x20\x75\x73\x65\x64\x20\x62\x79\x20\x74\x68"
+                 "\x65\x20\x48\x4d\x41\x43\x20\x61\x6c\x67\x6f\x72\x69\x74\x68"
+                 "\x6d\x2e"
+                 /* "This is a test using a larger than block-size key and a "
+                     "larger than block-size data. The key needs to be hashed "
+                     "before being used by the HMAC algorithm." */
+             },
+             {73, 152},
+             {/* HMAC-SHA-1 */
+                 "E8E99D0F45237D786D6BBAA7965C7808BBFF1A91",
+                 /* HMAC-SHA-224 */
+                 "3A854166AC5D9F023F54D517D0B39DBD946770DB9C2B95C9F6F565D1",
+                 /* HMAC-SHA-256 */
+                 "9B09FFA71B942FCB27635FBCD5B0E944BFDC63644F0713938A7F51535C3A"
+                 "35E2",
+                 /* HMAC-SHA-384 */
+                 "6617178E941F020D351E2F254E8FD32C602420FEB0B8FB9ADCCEBB82461E"
+                 "99C5A678CC31E799176D3860E6110C46523E",
+                 /* HMAC-SHA-512 */
+                 "E37B6A775DC87DBAA4DFA9F96E5E3FFDDEBD71F8867289865DF5A32D20CD"
+                 "C944B6022CAC3C4982B10D5EEB55C3E4DE15134676FB6DE0446065C97440"
+                 "FA8C6A58"
+             },
+             {SHA1HashSize, SHA224HashSize, SHA256HashSize, SHA384HashSize, SHA512HashSize}
+    }
+};
 
 /*
  * Check the hash value against the expected string, expressed in hex
  */
 static const char hexdigits[] = "0123456789ABCDEF";
-int checkmatch(const unsigned char* hashvalue,
-               const char* hexstr,
-               int hashsize) {
+
+int checkmatch(const unsigned char* hashvalue, const char* hexstr, int hashsize)
+{
     int i;
-    for (i = 0; i < hashsize; ++i) {
+    for (i = 0; i < hashsize; ++i)
+    {
         if (*hexstr++ != hexdigits[(hashvalue[i] >> 4) & 0xF])
+        {
             return 0;
+        }
         if (*hexstr++ != hexdigits[hashvalue[i] & 0xF])
+        {
             return 0;
+        }
     }
     return 1;
 }
@@ -692,23 +699,30 @@ int checkmatch(const unsigned char* hashvalue,
 /*
  * Print the string, converting non-printable characters to "."
  */
-void printstr(const char* str, int len) {
+void printstr(const char* str, int len)
+{
     for (; len-- > 0; str++)
-        putchar(isprint((unsigned char)*str) ? *str : '.');
+    {
+        putchar(isprint((unsigned char) *str) ? *str : '.');
+    }
 }
 
 /*
  * Print the string, converting non-printable characters to hex "## ".
  */
-void printxstr(const char* str, int len) {
+void printxstr(const char* str, int len)
+{
     for (; len-- > 0; str++)
+    {
         printf("%c%c ", hexdigits[(*str >> 4) & 0xF], hexdigits[*str & 0xF]);
+    }
 }
 
 /*
  * Print a usage message.
  */
-void usage(const char* argv0) {
+void usage(const char* argv0)
+{
     fprintf(stderr,
             "Usage:\n"
             "Common options: [-h hash] [-w|-x] [-H]\n"
@@ -749,36 +763,40 @@ void usage(const char* argv0) {
 /*
  * Print the results and PASS/FAIL.
  */
-void printResult(uint8_t* Message_Digest,
-                 int hashsize,
-                 const char* hashname,
-                 const char* testtype,
-                 const char* testname,
-                 const char* resultarray,
-                 int printResults,
-                 int printPassFail) {
+void printResult(uint8_t* Message_Digest, int hashsize, const char* hashname, const char* testtype, const char* testname,
+                 const char* resultarray, int printResults, int printPassFail)
+{
     int i, k;
-    if (printResults == PRINTTEXT) {
+    if (printResults == PRINTTEXT)
+    {
         putchar('\t');
-        for (i = 0; i < hashsize; ++i) {
+        for (i = 0; i < hashsize; ++i)
+        {
             putchar(hexdigits[(Message_Digest[i] >> 4) & 0xF]);
             putchar(hexdigits[Message_Digest[i] & 0xF]);
             putchar(' ');
         }
         putchar('\n');
-    } else if (printResults == PRINTRAW) {
+    }
+    else if (printResults == PRINTRAW)
+    {
         fwrite(Message_Digest, 1, hashsize, stdout);
-    } else if (printResults == PRINTHEX) {
-        for (i = 0; i < hashsize; ++i) {
+    }
+    else if (printResults == PRINTHEX)
+    {
+        for (i = 0; i < hashsize; ++i)
+        {
             putchar(hexdigits[(Message_Digest[i] >> 4) & 0xF]);
             putchar(hexdigits[Message_Digest[i] & 0xF]);
         }
         putchar('\n');
     }
 
-    if (printResults && resultarray) {
+    if (printResults && resultarray)
+    {
         printf("    Should match:\n\t");
-        for (i = 0, k = 0; i < hashsize; i++, k += 2) {
+        for (i = 0, k = 0; i < hashsize; i++, k += 2)
+        {
             putchar(resultarray[k]);
             putchar(resultarray[k + 1]);
             putchar(' ');
@@ -786,11 +804,13 @@ void printResult(uint8_t* Message_Digest,
         putchar('\n');
     }
 
-    if (printPassFail && resultarray) {
+    if (printPassFail && resultarray)
+    {
         int ret = checkmatch(Message_Digest, resultarray, hashsize);
         if ((printPassFail == PRINTPASSFAIL) || !ret)
-            printf("%s %s %s: %s\n", hashname, testtype, testname,
-                   ret ? "PASSED" : "FAILED");
+        {
+            printf("%s %s %s: %s\n", hashname, testtype, testname, ret ? "PASSED" : "FAILED");
+        }
     }
 }
 
@@ -799,29 +819,17 @@ void printResult(uint8_t* Message_Digest,
  * repeated repeatcount times, followed by the extrabits. If the
  * result is known, it is in resultarray in uppercase hex.
  */
-int hash(int testno,
-         int loopno,
-         int hashno,
-         const char* testarray,
-         int length,
-         long repeatcount,
-         int numberExtrabits,
-         int extrabits,
-         const unsigned char* keyarray,
-         int keylen,
-         const char* resultarray,
-         int hashsize,
-         int printResults,
-         int printPassFail) {
+int hash(int testno, int loopno, int hashno, const char* testarray, int length, long repeatcount, int numberExtrabits, int extrabits, const unsigned char* keyarray, int keylen, const char* resultarray, int hashsize, int printResults, int printPassFail)
+{
     USHAContext sha;
     HMACContext hmac;
     int err, i;
     uint8_t Message_Digest[USHAMaxHashSize];
     char buf[20];
 
-    if (printResults == PRINTTEXT) {
-        printf("\nTest %d: Iteration %d, Repeat %ld\n\t'", testno + 1, loopno,
-               repeatcount);
+    if (printResults == PRINTTEXT)
+    {
+        printf("\nTest %d: Iteration %d, Repeat %ld\n\t'", testno + 1, loopno, repeatcount);
         printstr(testarray, length);
         printf("'\n\t'");
         printxstr(testarray, length);
@@ -832,49 +840,42 @@ int hash(int testno,
 
     memset(&sha, '\343', sizeof(sha)); /* force bad data into struct */
     memset(&hmac, '\343', sizeof(hmac));
-    err = keyarray ? hmacReset(&hmac, hashes[hashno].whichSha, keyarray, keylen)
-                   : USHAReset(&sha, hashes[hashno].whichSha);
-    if (err != shaSuccess) {
-        fprintf(stderr, "hash(): %sReset Error %d.\n",
-                keyarray ? "hmac" : "sha", err);
+    err = keyarray ? hmacReset(&hmac, hashes[hashno].whichSha, keyarray, keylen) : USHAReset(&sha, hashes[hashno].whichSha);
+    if (err != shaSuccess)
+    {
+        fprintf(stderr, "hash(): %sReset Error %d.\n", keyarray ? "hmac" : "sha", err);
         return err;
     }
 
-    for (i = 0; i < repeatcount; ++i) {
-        err = keyarray ? hmacInput(&hmac, (const uint8_t*)testarray, length)
-                       : USHAInput(&sha, (const uint8_t*)testarray, length);
-        if (err != shaSuccess) {
-            fprintf(stderr, "hash(): %sInput Error %d.\n",
-                    keyarray ? "hmac" : "sha", err);
+    for (i = 0; i < repeatcount; ++i)
+    {
+        err = keyarray ? hmacInput(&hmac, (const uint8_t*) testarray, length) : USHAInput(&sha, (const uint8_t*) testarray, length);
+        if (err != shaSuccess)
+        {
+            fprintf(stderr, "hash(): %sInput Error %d.\n", keyarray ? "hmac" : "sha", err);
             return err;
         }
     }
 
-    if (numberExtrabits > 0) {
-        err = keyarray
-                  ? hmacFinalBits(&hmac, (uint8_t)extrabits, numberExtrabits)
-                  : USHAFinalBits(&sha, (uint8_t)extrabits, numberExtrabits);
-        if (err != shaSuccess) {
-            fprintf(stderr, "hash(): %sFinalBits Error %d.\n",
-                    keyarray ? "hmac" : "sha", err);
+    if (numberExtrabits > 0)
+    {
+        err = keyarray ? hmacFinalBits(&hmac, (uint8_t) extrabits, numberExtrabits) : USHAFinalBits(&sha, (uint8_t) extrabits, numberExtrabits);
+        if (err != shaSuccess)
+        {
+            fprintf(stderr, "hash(): %sFinalBits Error %d.\n", keyarray ? "hmac" : "sha", err);
             return err;
         }
     }
 
-    err = keyarray ? hmacResult(&hmac, Message_Digest)
-                   : USHAResult(&sha, Message_Digest);
-    if (err != shaSuccess) {
-        fprintf(stderr,
-                "hash(): %s Result Error %d, could not "
-                "compute message digest.\n",
-                keyarray ? "hmac" : "sha", err);
+    err = keyarray ? hmacResult(&hmac, Message_Digest) : USHAResult(&sha, Message_Digest);
+    if (err != shaSuccess)
+    {
+        fprintf(stderr, "hash(): %s Result Error %d, could not compute message digest.\n", keyarray ? "hmac" : "sha", err);
         return err;
     }
 
     sprintf(buf, "%d", testno + 1);
-    printResult(Message_Digest, hashsize, hashes[hashno].name,
-                keyarray ? "hmac standard test" : "sha standard test", buf,
-                resultarray, printResults, printPassFail);
+    printResult(Message_Digest, hashsize, hashes[hashno].name, keyarray ? "hmac standard test" : "sha standard test", buf, resultarray, printResults, printPassFail);
 
     return err;
 }
@@ -883,96 +884,100 @@ int hash(int testno,
  * Exercise a hash series of functions. The input is a filename.
  * If the result is known, it is in resultarray in uppercase hex.
  */
-int hashfile(int hashno,
-             const char* hashfilename,
-             int bits,
-             int bitcount,
-             int skipSpaces,
-             const unsigned char* keyarray,
-             int keylen,
-             const char* resultarray,
-             int hashsize,
-             int printResults,
-             int printPassFail) {
+int hashfile(int hashno, const char* hashfilename, int bits, int bitcount, int skipSpaces, const unsigned char* keyarray, int keylen, const char* resultarray, int hashsize, int printResults, int printPassFail)
+{
     USHAContext sha;
     HMACContext hmac;
     int err, nread, c;
     unsigned char buf[4096];
     uint8_t Message_Digest[USHAMaxHashSize];
     unsigned char cc;
-    FILE* hashfp =
-        (strcmp(hashfilename, "-") == 0) ? stdin : fopen(hashfilename, "r");
+    FILE* hashfp = (strcmp(hashfilename, "-") == 0) ? stdin : fopen(hashfilename, "r");
 
-    if (!hashfp) {
+    if (!hashfp)
+    {
         fprintf(stderr, "cannot open file '%s'\n", hashfilename);
         return shaStateError;
     }
 
     memset(&sha, '\343', sizeof(sha)); /* force bad data into struct */
     memset(&hmac, '\343', sizeof(hmac));
-    err = keyarray ? hmacReset(&hmac, hashes[hashno].whichSha, keyarray, keylen)
-                   : USHAReset(&sha, hashes[hashno].whichSha);
+    err = keyarray ? hmacReset(&hmac, hashes[hashno].whichSha, keyarray, keylen) : USHAReset(&sha, hashes[hashno].whichSha);
 
-    if (err != shaSuccess) {
-        fprintf(stderr, "hashfile(): %sReset Error %d.\n",
-                keyarray ? "hmac" : "sha", err);
+    if (err != shaSuccess)
+    {
+        fprintf(stderr, "hashfile(): %sReset Error %d.\n", keyarray ? "hmac" : "sha", err);
         return err;
     }
 
     if (skipSpaces)
-        while ((c = getc(hashfp)) != EOF) {
-            if (!isspace(c)) {
-                cc = (unsigned char)c;
-                err = keyarray ? hmacInput(&hmac, &cc, 1)
-                               : USHAInput(&sha, &cc, 1);
-                if (err != shaSuccess) {
-                    fprintf(stderr, "hashfile(): %sInput Error %d.\n",
-                            keyarray ? "hmac" : "sha", err);
+    {
+        while ((c = getc(hashfp)) != EOF)
+        {
+            if (!isspace(c))
+            {
+                cc = (unsigned char) c;
+                err = keyarray ? hmacInput(&hmac, &cc, 1) : USHAInput(&sha, &cc, 1);
+                if (err != shaSuccess)
+                {
+                    fprintf(stderr, "hashfile(): %sInput Error %d.\n", keyarray ? "hmac" : "sha", err);
                     if (hashfp != stdin)
+                    {
                         fclose(hashfp);
+                    }
                     return err;
                 }
             }
         }
+    }
     else
-        while ((nread = fread(buf, 1, sizeof(buf), hashfp)) > 0) {
-            err = keyarray ? hmacInput(&hmac, buf, nread)
-                           : USHAInput(&sha, buf, nread);
-            if (err != shaSuccess) {
-                fprintf(stderr, "hashfile(): %s Error %d.\n",
-                        keyarray ? "hmacInput" : "shaInput", err);
+    {
+        while ((nread = fread(buf, 1, sizeof(buf), hashfp)) > 0)
+        {
+            err = keyarray ? hmacInput(&hmac, buf, nread) : USHAInput(&sha, buf, nread);
+            if (err != shaSuccess)
+            {
+                fprintf(stderr, "hashfile(): %s Error %d.\n", keyarray ? "hmacInput" : "shaInput", err);
                 if (hashfp != stdin)
+                {
                     fclose(hashfp);
+                }
                 return err;
             }
         }
+    }
 
     if (bitcount > 0)
-        err = keyarray ? hmacFinalBits(&hmac, bits, bitcount)
-                       : USHAFinalBits(&sha, bits, bitcount);
-    if (err != shaSuccess) {
-        fprintf(stderr, "hashfile(): %s Error %d.\n",
-                keyarray ? "hmacResult" : "shaResult", err);
+    {
+        err = keyarray ? hmacFinalBits(&hmac, bits, bitcount) : USHAFinalBits(&sha, bits, bitcount);
+    }
+    if (err != shaSuccess)
+    {
+        fprintf(stderr, "hashfile(): %s Error %d.\n", keyarray ? "hmacResult" : "shaResult", err);
         if (hashfp != stdin)
+        {
             fclose(hashfp);
+        }
         return err;
     }
 
-    err = keyarray ? hmacResult(&hmac, Message_Digest)
-                   : USHAResult(&sha, Message_Digest);
-    if (err != shaSuccess) {
-        fprintf(stderr, "hashfile(): %s Error %d.\n",
-                keyarray ? "hmacResult" : "shaResult", err);
+    err = keyarray ? hmacResult(&hmac, Message_Digest) : USHAResult(&sha, Message_Digest);
+    if (err != shaSuccess)
+    {
+        fprintf(stderr, "hashfile(): %s Error %d.\n", keyarray ? "hmacResult" : "shaResult", err);
         if (hashfp != stdin)
+        {
             fclose(hashfp);
+        }
         return err;
     }
 
-    printResult(Message_Digest, hashsize, hashes[hashno].name, "file",
-                hashfilename, resultarray, printResults, printPassFail);
+    printResult(Message_Digest, hashsize, hashes[hashno].name, "file", hashfilename, resultarray, printResults, printPassFail);
 
     if (hashfp != stdin)
+    {
         fclose(hashfp);
+    }
     return err;
 }
 
@@ -983,31 +988,29 @@ int hashfile(int hashno,
  * This result is then checked, and used to seed the next cycle.
  * If the result is known, it is in resultarrays in uppercase hex.
  */
-void randomtest(int hashno,
-                const char* seed,
-                int hashsize,
-                const char** resultarrays,
-                int randomcount,
-                int printResults,
-                int printPassFail) {
+void randomtest(int hashno, const char* seed, int hashsize, const char** resultarrays, int randomcount, int printResults, int printPassFail)
+{
     int i, j;
     char buf[20];
     unsigned char SEED[USHAMaxHashSize], MD[1003][USHAMaxHashSize];
 
     /* INPUT: Seed - A random seed n bits long */
     memcpy(SEED, seed, hashsize);
-    if (printResults == PRINTTEXT) {
+    if (printResults == PRINTTEXT)
+    {
         printf("%s random test seed= '", hashes[hashno].name);
         printxstr(seed, hashsize);
         printf("'\n");
     }
 
-    for (j = 0; j < randomcount; j++) {
+    for (j = 0; j < randomcount; j++)
+    {
         /* MD0 = MD1 = MD2 = Seed; */
         memcpy(MD[0], SEED, hashsize);
         memcpy(MD[1], SEED, hashsize);
         memcpy(MD[2], SEED, hashsize);
-        for (i = 3; i < 1003; i++) {
+        for (i = 3; i < 1003; i++)
+        {
             /* Mi = MDi-3 || MDi-2 || MDi-1; */
             USHAContext Mi;
             memset(&Mi, '\343', sizeof(Mi)); /* force bad data into struct */
@@ -1024,26 +1027,25 @@ void randomtest(int hashno,
 
         /* OUTPUT: MDj */
         sprintf(buf, "%d", j);
-        printResult(SEED, hashsize, hashes[hashno].name, "random test", buf,
-                    resultarrays ? resultarrays[j] : 0, printResults,
-                    (j < RANDOMCOUNT) ? printPassFail : 0);
+        printResult(SEED, hashsize, hashes[hashno].name, "random test", buf, resultarrays ? resultarrays[j] : 0, printResults, (j < RANDOMCOUNT) ? printPassFail : 0);
     }
 }
+
 /*
  * Look up a hash name.
  */
-int findhash(const char* argv0, const char* opt) {
+int findhash(const char* argv0, const char* opt)
+{
     int i;
-    const char* names[HASHCOUNT][2] = {{"0", "sha1"},
-                                       {"1", "sha224"},
-                                       {"2", "sha256"},
-                                       {"3", "sha384"},
-                                       {"4", "sha512"}};
+    const char* names[HASHCOUNT][2] = {{"0", "sha1"}, {"1", "sha224"}, {"2", "sha256"}, {"3", "sha384"}, {"4", "sha512"}};
 
     for (i = 0; i < HASHCOUNT; i++)
-        if ((strcmp(opt, names[i][0]) == 0) ||
-            (scasecmp(opt, names[i][1]) == 0))
+    {
+        if ((strcmp(opt, names[i][0]) == 0) || (scasecmp(opt, names[i][1]) == 0))
+        {
             return i;
+        }
+    }
 
     fprintf(stderr, "%s: Unknown hash name: '%s'\n", argv0, opt);
     usage(argv0);
@@ -1053,98 +1055,118 @@ int findhash(const char* argv0, const char* opt) {
 /*
  * Run some tests that should invoke errors.
  */
-void testErrors(int hashnolow,
-                int hashnohigh,
-                int printResults,
-                int printPassFail) {
+void testErrors(int hashnolow, int hashnohigh, int printResults, int printPassFail)
+{
     USHAContext usha;
     uint8_t Message_Digest[USHAMaxHashSize];
     int hashno, err;
 
-    for (hashno = hashnolow; hashno <= hashnohigh; hashno++) {
+    for (hashno = hashnolow; hashno <= hashnohigh; hashno++)
+    {
         memset(&usha, '\343', sizeof(usha)); /* force bad data */
-        USHAReset(&usha, hashno);
+        USHAReset(&usha, SHAversion(hashno));
         USHAResult(&usha, Message_Digest);
-        err = USHAInput(&usha, (const unsigned char*)"foo", 3);
+        err = USHAInput(&usha, (const unsigned char*) "foo", 3);
         if (printResults == PRINTTEXT)
+        {
             printf("\nError %d. Should be %d.\n", err, shaStateError);
-        if ((printPassFail == PRINTPASSFAIL) ||
-            ((printPassFail == PRINTFAIL) && (err != shaStateError)))
-            printf("%s se: %s\n", hashes[hashno].name,
-                   (err == shaStateError) ? "PASSED" : "FAILED");
+        }
+        if ((printPassFail == PRINTPASSFAIL) || ((printPassFail == PRINTFAIL) && (err != shaStateError)))
+        {
+            printf("%s se: %s\n", hashes[hashno].name, (err == shaStateError) ? "PASSED" : "FAILED");
+        }
 
         err = USHAFinalBits(&usha, 0x80, 3);
         if (printResults == PRINTTEXT)
+        {
             printf("\nError %d. Should be %d.\n", err, shaStateError);
-        if ((printPassFail == PRINTPASSFAIL) ||
-            ((printPassFail == PRINTFAIL) && (err != shaStateError)))
-            printf("%s se: %s\n", hashes[hashno].name,
-                   (err == shaStateError) ? "PASSED" : "FAILED");
+        }
+        if ((printPassFail == PRINTPASSFAIL) || ((printPassFail == PRINTFAIL) && (err != shaStateError)))
+        {
+            printf("%s se: %s\n", hashes[hashno].name, (err == shaStateError) ? "PASSED" : "FAILED");
+        }
 
         err = USHAReset(0, hashes[hashno].whichSha);
         if (printResults == PRINTTEXT)
+        {
             printf("\nError %d. Should be %d.\n", err, shaNull);
-        if ((printPassFail == PRINTPASSFAIL) ||
-            ((printPassFail == PRINTFAIL) && (err != shaNull)))
-            printf("%s usha null: %s\n", hashes[hashno].name,
-                   (err == shaNull) ? "PASSED" : "FAILED");
+        }
+        if ((printPassFail == PRINTPASSFAIL) || ((printPassFail == PRINTFAIL) && (err != shaNull)))
+        {
+            printf("%s usha null: %s\n", hashes[hashno].name, (err == shaNull) ? "PASSED" : "FAILED");
+        }
 
-        switch (hashno) {
-            case SHA1:
-                err = SHA1Reset(0);
+        switch (hashno)
+        {
+            case SHA1:err = SHA1Reset(0);
                 break;
-            case SHA224:
-                err = SHA224Reset(0);
+            case SHA224:err = SHA224Reset(0);
                 break;
-            case SHA256:
-                err = SHA256Reset(0);
+            case SHA256:err = SHA256Reset(0);
                 break;
-            case SHA384:
-                err = SHA384Reset(0);
+            case SHA384:err = SHA384Reset(0);
                 break;
-            case SHA512:
-                err = SHA512Reset(0);
+            case SHA512:err = SHA512Reset(0);
                 break;
         }
         if (printResults == PRINTTEXT)
+        {
             printf("\nError %d. Should be %d.\n", err, shaNull);
-        if ((printPassFail == PRINTPASSFAIL) ||
-            ((printPassFail == PRINTFAIL) && (err != shaNull)))
-            printf("%s sha null: %s\n", hashes[hashno].name,
-                   (err == shaNull) ? "PASSED" : "FAILED");
+        }
+        if ((printPassFail == PRINTPASSFAIL) || ((printPassFail == PRINTFAIL) && (err != shaNull)))
+        {
+            printf("%s sha null: %s\n", hashes[hashno].name, (err == shaNull) ? "PASSED" : "FAILED");
+        }
     }
 }
 
 /* replace a hex string in place with its value */
-int unhexStr(char* hexstr) {
+int unhexStr(char* hexstr)
+{
     char* o = hexstr;
     int len = 0, nibble1 = 0, nibble2 = 0;
     if (!hexstr)
+    {
         return 0;
-    for (; *hexstr; hexstr++) {
-        if (isalpha((int)(unsigned char)(*hexstr))) {
+    }
+    for (; *hexstr; hexstr++)
+    {
+        if (isalpha((int) (unsigned char) (*hexstr)))
+        {
             nibble1 = tolower(*hexstr) - 'a' + 10;
-        } else if (isdigit((int)(unsigned char)(*hexstr))) {
+        }
+        else if (isdigit((int) (unsigned char) (*hexstr)))
+        {
             nibble1 = *hexstr - '0';
-        } else {
+        }
+        else
+        {
             printf("\nError: bad hex character '%c'\n", *hexstr);
         }
         if (!*++hexstr)
+        {
             break;
-        if (isalpha((int)(unsigned char)(*hexstr))) {
+        }
+        if (isalpha((int) (unsigned char) (*hexstr)))
+        {
             nibble2 = tolower(*hexstr) - 'a' + 10;
-        } else if (isdigit((int)(unsigned char)(*hexstr))) {
+        }
+        else if (isdigit((int) (unsigned char) (*hexstr)))
+        {
             nibble2 = *hexstr - '0';
-        } else {
+        }
+        else
+        {
             printf("\nError: bad hex character '%c'\n", *hexstr);
         }
-        *o++ = (char)((nibble1 << 4) | nibble2);
+        *o++ = (char) ((nibble1 << 4) | nibble2);
         len++;
     }
     return len;
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char** argv)
+{
     int i, err;
     int loopno, loopnohigh = 1;
     int hashno, hashnolow = 0, hashnohigh = HASHCOUNT - 1;
@@ -1166,82 +1188,67 @@ int main(int argc, char** argv) {
     int extrabits = 0, numberExtrabits = 0;
     int strIsHex = 0;
 
+//    usage(argv[0]);
+
     while ((i = xgetopt(argc, argv, "b:B:ef:F:h:Hk:l:mpPr:R:s:S:t:wxX")) != -1)
-        switch (i) {
-            case 'b':
-                extrabits = strtol(xoptarg, 0, 0);
+    {
+        switch (i)
+        {
+            case 'b':extrabits = strtol(xoptarg, 0, 0);
                 break;
-            case 'B':
-                numberExtrabits = atoi(xoptarg);
+            case 'B':numberExtrabits = atoi(xoptarg);
                 break;
-            case 'e':
-                checkErrors = 1;
+            case 'e':checkErrors = 1;
                 break;
-            case 'f':
-                hashfilename = xoptarg;
+            case 'f':hashfilename = xoptarg;
                 break;
-            case 'F':
-                hashFilename = xoptarg;
+            case 'F':hashFilename = xoptarg;
                 break;
-            case 'h':
-                hashnolow = hashnohigh = findhash(argv[0], xoptarg);
+            case 'h':hashnolow = hashnohigh = findhash(argv[0], xoptarg);
                 break;
-            case 'H':
-                strIsHex = 1;
+            case 'H':strIsHex = 1;
                 break;
-            case 'k':
-                hmacKey = xoptarg;
+            case 'k':hmacKey = xoptarg;
                 hmaclen = strlen(xoptarg);
                 break;
-            case 'l':
-                loopnohigh = atoi(xoptarg);
+            case 'l':loopnohigh = atoi(xoptarg);
                 break;
-            case 'm':
-                runHmacTests = 1;
+            case 'm':runHmacTests = 1;
                 break;
-            case 'P':
-                printPassFail = 0;
+            case 'P':printPassFail = 0;
                 break;
-            case 'p':
-                printResults = PRINTNONE;
+            case 'p':printResults = PRINTNONE;
                 break;
-            case 'R':
-                randomcount = atoi(xoptarg);
+            case 'R':randomcount = atoi(xoptarg);
                 break;
-            case 'r':
-                randomseedstr = xoptarg;
+            case 'r':randomseedstr = xoptarg;
                 break;
-            case 's':
-                hashstr = xoptarg;
+            case 's':hashstr = xoptarg;
                 hashlen = strlen(hashstr);
                 break;
-            case 'S':
-                resultstr = xoptarg;
+            case 'S':resultstr = xoptarg;
                 break;
-            case 't':
-                testnolow = ntestnohigh = atoi(xoptarg) - 1;
+            case 't':testnolow = ntestnohigh = atoi(xoptarg) - 1;
                 break;
-            case 'w':
-                printResults = PRINTRAW;
+            case 'w':printResults = PRINTRAW;
                 break;
-            case 'x':
-                printResults = PRINTHEX;
+            case 'x':printResults = PRINTHEX;
                 break;
-            case 'X':
-                printPassFail = 2;
+            case 'X':printPassFail = 2;
                 break;
-            default:
-                usage(argv[0]);
+            default:usage(argv[0]);
         }
+    }
 
-    if (strIsHex) {
+    if (strIsHex)
+    {
         hashlen = unhexStr(hashstr);
         unhexStr(randomseedstr);
         hmaclen = unhexStr(hmacKey);
     }
     testnohigh = (ntestnohigh != 0) ? ntestnohigh
-                 : runHmacTests     ? (HMACTESTCOUNT - 1)
-                                    : (TESTCOUNT - 1);
+                                    : runHmacTests ? (HMACTESTCOUNT - 1)
+                                                   : (TESTCOUNT - 1);
     if ((testnolow < 0) ||
         (testnohigh >= (runHmacTests ? HMACTESTCOUNT : TESTCOUNT)) ||
         (hashnolow < 0) || (hashnohigh >= HASHCOUNT) ||
@@ -1249,77 +1256,83 @@ int main(int argc, char** argv) {
         (resultstr && (!hashstr && !hashfilename && !hashFilename)) ||
         ((runHmacTests || hmacKey) && randomseedstr) ||
         (hashfilename && hashFilename))
+    {
         usage(argv[0]);
+    }
 
     /*
      *  Perform SHA/HMAC tests
      */
-    for (hashno = hashnolow; hashno <= hashnohigh; ++hashno) {
+    for (hashno = hashnolow; hashno <= hashnohigh; ++hashno)
+    {
         if (printResults == PRINTTEXT)
+        {
             printf("Hash %s\n", hashes[hashno].name);
+        }
         err = shaSuccess;
 
-        for (loopno = 1; (loopno <= loopnohigh) && (err == shaSuccess);
-             ++loopno) {
+        for (loopno = 1; (loopno <= loopnohigh) && (err == shaSuccess); ++loopno)
+        {
             if (hashstr)
-                err =
-                    hash(0, loopno, hashno, hashstr, hashlen, 1,
-                         numberExtrabits, extrabits,
-                         (const unsigned char*)hmacKey, hmaclen, resultstr,
-                         hashes[hashno].hashsize, printResults, printPassFail);
+            {
+                err = hash(0, loopno, hashno, hashstr, hashlen, 1, numberExtrabits, extrabits, (const unsigned char*) hmacKey, hmaclen, resultstr, hashes[hashno].hashsize, printResults, printPassFail);
+            }
 
             else if (randomseedstr)
-                randomtest(hashno, randomseedstr, hashes[hashno].hashsize, 0,
-                           randomcount, printResults, printPassFail);
+            {
+                randomtest(hashno, randomseedstr, hashes[hashno].hashsize, 0, randomcount, printResults, printPassFail);
+            }
 
             else if (hashfilename)
-                err = hashfile(hashno, hashfilename, extrabits, numberExtrabits,
-                               0, (const unsigned char*)hmacKey, hmaclen,
-                               resultstr, hashes[hashno].hashsize, printResults,
-                               printPassFail);
+            {
+                err = hashfile(hashno, hashfilename, extrabits, numberExtrabits, 0, (const unsigned char*) hmacKey, hmaclen, resultstr, hashes[hashno].hashsize, printResults, printPassFail);
+            }
 
             else if (hashFilename)
-                err = hashfile(hashno, hashFilename, extrabits, numberExtrabits,
-                               1, (const unsigned char*)hmacKey, hmaclen,
-                               resultstr, hashes[hashno].hashsize, printResults,
-                               printPassFail);
+            {
+                err = hashfile(hashno, hashFilename, extrabits, numberExtrabits, 1, (const unsigned char*) hmacKey, hmaclen, resultstr, hashes[hashno].hashsize, printResults, printPassFail);
+            }
 
             else /* standard tests */ {
                 for (testno = testnolow;
-                     (testno <= testnohigh) && (err == shaSuccess); ++testno) {
-                    if (runHmacTests) {
+                     (testno <= testnohigh) && (err == shaSuccess); ++testno)
+                {
+                    if (runHmacTests)
+                    {
                         err = hash(
                             testno, loopno, hashno,
                             hmachashes[testno].dataarray[hashno]
-                                ? hmachashes[testno].dataarray[hashno]
+                            ? hmachashes[testno].dataarray[hashno]
                             : hmachashes[testno].dataarray[1]
-                                ? hmachashes[testno].dataarray[1]
-                                : hmachashes[testno].dataarray[0],
+                              ? hmachashes[testno].dataarray[1]
+                              : hmachashes[testno].dataarray[0],
                             hmachashes[testno].datalength[hashno]
-                                ? hmachashes[testno].datalength[hashno]
+                            ? hmachashes[testno].datalength[hashno]
                             : hmachashes[testno].datalength[1]
-                                ? hmachashes[testno].datalength[1]
-                                : hmachashes[testno].datalength[0],
+                              ? hmachashes[testno].datalength[1]
+                              : hmachashes[testno].datalength[0],
                             1, 0, 0,
-                            (const unsigned char*)(hmachashes[testno]
-                                                           .keyarray[hashno]
-                                                       ? hmachashes[testno]
-                                                             .keyarray[hashno]
-                                                   : hmachashes[testno]
-                                                           .keyarray[1]
-                                                       ? hmachashes[testno]
-                                                             .keyarray[1]
-                                                       : hmachashes[testno]
-                                                             .keyarray[0]),
+                            (const unsigned char*) (hmachashes[testno]
+                                                        .keyarray[hashno]
+                                                    ? hmachashes[testno]
+                                                        .keyarray[hashno]
+                                                    : hmachashes[testno]
+                                                          .keyarray[1]
+                                                      ? hmachashes[testno]
+                                                          .keyarray[1]
+                                                      : hmachashes[testno]
+                                                          .keyarray[0]),
                             hmachashes[testno].keylength[hashno]
-                                ? hmachashes[testno].keylength[hashno]
+                            ? hmachashes[testno].keylength[hashno]
                             : hmachashes[testno].keylength[1]
-                                ? hmachashes[testno].keylength[1]
-                                : hmachashes[testno].keylength[0],
+                              ? hmachashes[testno].keylength[1]
+                              : hmachashes[testno].keylength[0],
                             hmachashes[testno].resultarray[hashno],
                             hmachashes[testno].resultlength[hashno],
                             printResults, printPassFail);
-                    } else {
+                    }
+                    else
+                    {
                         err = hash(testno, loopno, hashno,
                                    hashes[hashno].tests[testno].testarray,
                                    hashes[hashno].tests[testno].length,
@@ -1332,7 +1345,8 @@ int main(int argc, char** argv) {
                     }
                 }
 
-                if (!runHmacTests) {
+                if (!runHmacTests)
+                {
                     randomtest(hashno, hashes[hashno].randomtest,
                                hashes[hashno].hashsize,
                                hashes[hashno].randomresults, RANDOMCOUNT,
@@ -1343,7 +1357,8 @@ int main(int argc, char** argv) {
     }
 
     /* Test some error returns */
-    if (checkErrors) {
+    if (checkErrors)
+    {
         testErrors(hashnolow, hashnohigh, printResults, printPassFail);
     }
 
@@ -1354,14 +1369,20 @@ int main(int argc, char** argv) {
  * Compare two strings, case independently.
  * Equivalent to strcasecmp() found on some systems.
  */
-int scasecmp(const char* s1, const char* s2) {
-    for (;;) {
+int scasecmp(const char* s1, const char* s2)
+{
+    for (;;)
+    {
         char u1 = tolower(*s1++);
         char u2 = tolower(*s2++);
         if (u1 != u2)
+        {
             return u1 - u2;
+        }
         if (u1 == '\0')
+        {
             return 0;
+        }
     }
 }
 
@@ -1393,58 +1414,81 @@ char* xoptarg;
 int xoptind = 1;
 int xopterr = 1;
 
-static int xgetopt(int argc, char** argv, const char* optstring) {
+static int xgetopt(int argc, char** argv, const char* optstring)
+{
     static int avplace;
     char* ap;
     char* cp;
     int c;
 
     if (xoptind >= argc)
+    {
         return EOF;
+    }
 
     ap = argv[xoptind] + avplace;
 
     /* At beginning of arg but not an option */
-    if (avplace == 0) {
+    if (avplace == 0)
+    {
         if (ap[0] != '-')
+        {
             return EOF;
-        else if (ap[1] == '-') {
+        }
+        else if (ap[1] == '-')
+        {
             /* Special end of options option */
             xoptind++;
             return EOF;
-        } else if (ap[1] == '\0')
-            return EOF; /* single '-' is not allowed */
+        }
+        else if (ap[1] == '\0')
+        {
+            return EOF;
+        } /* single '-' is not allowed */
     }
 
     /* Get next letter */
     avplace++;
     c = *++ap;
-    cp = strchr(optstring, c);
-    if (cp == NULL || c == ':') {
+    cp = const_cast<char*>(strchr(optstring, c));
+    if (cp == NULL || c == ':')
+    {
         if (xopterr)
+        {
             fprintf(stderr, "Unrecognised option -- %c\n", c);
+        }
         return '?';
     }
 
-    if (cp[1] == ':') {
+    if (cp[1] == ':')
+    {
         /* There should be an option arg */
         avplace = 0;
-        if (ap[1] == '\0') {
+        if (ap[1] == '\0')
+        {
             /* It is a separate arg */
-            if (++xoptind >= argc) {
+            if (++xoptind >= argc)
+            {
                 if (xopterr)
+                {
                     fprintf(stderr, "Option requires an argument\n");
+                }
                 return '?';
             }
             xoptarg = argv[xoptind++];
-        } else {
+        }
+        else
+        {
             /* is attached to option letter */
             xoptarg = ap + 1;
             ++xoptind;
         }
-    } else {
+    }
+    else
+    {
         /* If we are out of letters then go to next arg */
-        if (ap[1] == '\0') {
+        if (ap[1] == '\0')
+        {
             ++xoptind;
             avplace = 0;
         }
