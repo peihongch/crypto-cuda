@@ -9,224 +9,289 @@
 
 #include "sha.h"
 
-/*
- *  hmac
- *
- *  Description:
- *      This function will compute an HMAC message digest.
- *
- *  Parameters:
- *      whichSha: [in]
- *          One of SHA1, SHA224, SHA256, SHA384, SHA512
- *      key: [in]
- *          The secret shared key.
- *      key_len: [in]
- *          The length of the secret shared key.
- *      message_array: [in]
- *          An array of characters representing the message.
- *      length: [in]
- *          The length of the message in message_array
- *      digest: [out]
- *          Where the digest is returned.
- *          NOTE: The length of the digest is determined by
- *              the value of whichSha.
- *
- *  Returns:
- *      sha Error Code.
- *
- */
-__device__ int hmac(SHAversion whichSha,
-                    const unsigned char* text,
-                    int text_len,
-                    const unsigned char* key,
-                    int key_len,
-                    uint8_t digest[USHAMaxHashSize]) {
-    HMACContext ctx;
-    return hmacReset(&ctx, whichSha, key, key_len) ||
-           hmacInput(&ctx, text, text_len) || hmacResult(&ctx, digest);
-}
-
-/*
- *  hmacReset
- *
- *  Description:
- *      This function will initialize the hmacContext in preparation
- *      for computing a new HMAC message digest.
- *
- *  Parameters:
- *      context: [in/out]
- *          The context to reset.
- *      whichSha: [in]
- *          One of SHA1, SHA224, SHA256, SHA384, SHA512
- *      key: [in]
- *          The secret shared key.
- *      key_len: [in]
- *          The length of the secret shared key.
- *
- *  Returns:
- *      sha Error Code.
- *
- */
-__device__ int hmacReset(HMACContext* ctx,
-                         enum SHAversion whichSha,
-                         const unsigned char* key,
-                         int key_len) {
-    int i, blocksize, hashsize;
-
-    /* inner padding - key XORd with ipad */
-    unsigned char k_ipad[USHA_Max_Message_Block_Size];
-
-    /* temporary buffer when keylen > blocksize */
-    unsigned char tempkey[USHAMaxHashSize];
-
-    if (!ctx)
-        return shaNull;
-
-    blocksize = ctx->blockSize = USHABlockSize(whichSha);
-    hashsize = ctx->hashSize = USHAHashSize(whichSha);
-
-    ctx->whichSha = whichSha;
-
+namespace cuda
+{
     /*
-     * If key is longer than the hash blocksize,
-     * reset it to key = HASH(key).
+     *  hmac
+     *
+     *  Description:
+     *      This function will compute an HMAC message digest.
+     *
+     *  Parameters:
+     *      whichSha: [in]
+     *          One of SHA1, SHA224, SHA256, SHA384, SHA512
+     *      key: [in]
+     *          The secret shared key.
+     *      key_len: [in]
+     *          The length of the secret shared key.
+     *      message_array: [in]
+     *          An array of characters representing the message.
+     *      length: [in]
+     *          The length of the message in message_array
+     *      digest: [out]
+     *          Where the digest is returned.
+     *          NOTE: The length of the digest is determined by
+     *              the value of whichSha.
+     *
+     *  Returns:
+     *      sha Error Code.
+     *
      */
-    if (key_len > blocksize) {
-        USHAContext tctx;
-        int err = USHAReset(&tctx, whichSha) ||
-                  USHAInput(&tctx, key, key_len) || USHAResult(&tctx, tempkey);
-        if (err != shaSuccess)
-            return err;
-
-        key = tempkey;
-        key_len = hashsize;
+    __device__ int hmac(SHAversion whichSha, const unsigned char* text, int text_len, const unsigned char* key, int key_len, uint8_t digest[USHAMaxHashSize])
+    {
+        HMACContext ctx;
+        return hmacReset(&ctx, whichSha, key, key_len) || hmacInput(&ctx, text, text_len) || hmacResult(&ctx, digest);
     }
 
     /*
-     * The HMAC transform looks like:
+     *  hmacReset
      *
-     * SHA(K XOR opad, SHA(K XOR ipad, text))
+     *  Description:
+     *      This function will initialize the hmacContext in preparation
+     *      for computing a new HMAC message digest.
      *
-     * where K is an n byte key.
-     * ipad is the byte 0x36 repeated blocksize times
-     * opad is the byte 0x5c repeated blocksize times
-     * and text is the data being protected.
+     *  Parameters:
+     *      context: [in/out]
+     *          The context to reset.
+     *      whichSha: [in]
+     *          One of SHA1, SHA224, SHA256, SHA384, SHA512
+     *      key: [in]
+     *          The secret shared key.
+     *      key_len: [in]
+     *          The length of the secret shared key.
+     *
+     *  Returns:
+     *      sha Error Code.
+     *
      */
+    __device__ int hmacReset(HMACContext* ctx, enum SHAversion whichSha, const unsigned char* key, int key_len)
+    {
+        int i, blocksize, hashsize;
 
-    /* store key into the pads, XOR'd with ipad and opad values */
-    for (i = 0; i < key_len; i++) {
-        k_ipad[i] = key[i] ^ 0x36;
-        ctx->k_opad[i] = key[i] ^ 0x5c;
+        /* inner padding - key XORd with ipad */
+        unsigned char k_ipad[USHA_Max_Message_Block_Size];
+
+        /* temporary buffer when keylen > blocksize */
+        unsigned char tempkey[USHAMaxHashSize];
+
+        if (!ctx)
+        {
+            return shaNull;
+        }
+
+        blocksize = ctx->blockSize = USHABlockSize(whichSha);
+        hashsize = ctx->hashSize = USHAHashSize(whichSha);
+
+        ctx->whichSha = whichSha;
+
+        /*
+         * If key is longer than the hash blocksize,
+         * reset it to key = HASH(key).
+         */
+        if (key_len > blocksize)
+        {
+            USHAContext tctx;
+            int err = USHAReset(&tctx, whichSha) || USHAInput(&tctx, key, key_len) || USHAResult(&tctx, tempkey);
+            if (err != shaSuccess)
+            {
+                return err;
+            }
+
+            key = tempkey;
+            key_len = hashsize;
+        }
+
+        /*
+         * The HMAC transform looks like:
+         *
+         * SHA(K XOR opad, SHA(K XOR ipad, text))
+         *
+         * where K is an n byte key.
+         * ipad is the byte 0x36 repeated blocksize times
+         * opad is the byte 0x5c repeated blocksize times
+         * and text is the data being protected.
+         */
+
+        /* store key into the pads, XOR'd with ipad and opad values */
+        for (i = 0; i < key_len; i++)
+        {
+            k_ipad[i] = key[i] ^ 0x36;
+            ctx->k_opad[i] = key[i] ^ 0x5c;
+        }
+        /* remaining pad bytes are '\0' XOR'd with ipad and opad values */
+        for (; i < blocksize; i++)
+        {
+            k_ipad[i] = 0x36;
+            ctx->k_opad[i] = 0x5c;
+        }
+
+        /* perform inner hash */
+        /* init context for 1st pass */
+        return USHAReset(&ctx->shaContext, whichSha) ||
+               /* and start with inner pad */
+               USHAInput(&ctx->shaContext, k_ipad, blocksize);
     }
-    /* remaining pad bytes are '\0' XOR'd with ipad and opad values */
-    for (; i < blocksize; i++) {
-        k_ipad[i] = 0x36;
-        ctx->k_opad[i] = 0x5c;
+
+    /*
+     *  hmacInput
+     *
+     *  Description:
+     *      This function accepts an array of octets as the next portion
+     *      of the message.
+     * *
+     *  Parameters:
+     *      context: [in/out]
+     *          The HMAC context to update
+     *      message_array: [in]
+     *          An array of characters representing the next portion of
+     *          the message.
+     *      length: [in]
+     *          The length of the message in message_array
+     *
+     *  Returns:
+     *      sha Error Code.
+     *
+     */
+    __device__ int hmacInput(HMACContext* ctx, const unsigned char* text, int text_len)
+    {
+        if (!ctx)
+        {
+            return shaNull;
+        }
+
+        /* then text of datagram */
+        return USHAInput(&ctx->shaContext, text, text_len);
     }
 
-    /* perform inner hash */
-    /* init context for 1st pass */
-    return USHAReset(&ctx->shaContext, whichSha) ||
-           /* and start with inner pad */
-           USHAInput(&ctx->shaContext, k_ipad, blocksize);
-}
+    /*
+     * HMACFinalBits
+     *
+     * Description:
+     *   This function will add in any final bits of the message.
+     *
+     * Parameters:
+     *   context: [in/out]
+     *     The HMAC context to update
+     *   message_bits: [in]
+     *     The final bits of the message, in the upper portion of the
+     *     byte. (Use 0b###00000 instead of 0b00000### to input the
+     *     three bits ###.)
+     *   length: [in]
+     *     The number of bits in message_bits, between 1 and 7.
+     *
+     * Returns:
+     *   sha Error Code.
+     */
+    __device__ int hmacFinalBits(HMACContext* ctx, const uint8_t bits, unsigned int bitcount)
+    {
+        if (!ctx)
+        {
+            return shaNull;
+        }
+        /* then final bits of datagram */
+        return USHAFinalBits(&ctx->shaContext, bits, bitcount);
+    }
 
-/*
- *  hmacInput
- *
- *  Description:
- *      This function accepts an array of octets as the next portion
- *      of the message.
- * *
- *  Parameters:
- *      context: [in/out]
- *          The HMAC context to update
- *      message_array: [in]
- *          An array of characters representing the next portion of
- *          the message.
- *      length: [in]
- *          The length of the message in message_array
- *
- *  Returns:
- *      sha Error Code.
- *
- */
-__device__ int hmacInput(HMACContext* ctx,
-                         const unsigned char* text,
-                         int text_len) {
-    if (!ctx)
-        return shaNull;
-    /* then text of datagram */
-    return USHAInput(&ctx->shaContext, text, text_len);
-}
+    /*
+     * HMACResult
+     *
+     * Description:
+     *   This function will return the N-byte message digest into the
+     *   Message_Digest array provided by the caller.
+     *   NOTE: The first octet of hash is stored in the 0th element,
+     *      the last octet of hash in the Nth element.
+     *
+     * Parameters:
+     *   context: [in/out]
+     *     The context to use to calculate the HMAC hash.
+     *   digest: [out]
+     *     Where the digest is returned.
+     *   NOTE 2: The length of the hash is determined by the value of
+     *      whichSha that was passed to hmacReset().
+     *
+     * Returns:
+     *   sha Error Code.
+     *
+     */
+    __device__ int hmacResult(HMACContext* ctx, uint8_t* digest)
+    {
+        if (!ctx)
+        {
+            return shaNull;
+        }
 
-/*
- * HMACFinalBits
- *
- * Description:
- *   This function will add in any final bits of the message.
- *
- * Parameters:
- *   context: [in/out]
- *     The HMAC context to update
- *   message_bits: [in]
- *     The final bits of the message, in the upper portion of the
- *     byte. (Use 0b###00000 instead of 0b00000### to input the
- *     three bits ###.)
- *   length: [in]
- *     The number of bits in message_bits, between 1 and 7.
- *
- * Returns:
- *   sha Error Code.
- */
-__device__ int hmacFinalBits(HMACContext* ctx,
-                             const uint8_t bits,
-                             unsigned int bitcount) {
-    if (!ctx)
-        return shaNull;
-    /* then final bits of datagram */
-    return USHAFinalBits(&ctx->shaContext, bits, bitcount);
-}
+        /* finish up 1st pass */
+        /* (Use digest here as a temporary buffer.) */
+        return USHAResult(&ctx->shaContext, digest) ||
 
-/*
- * HMACResult
- *
- * Description:
- *   This function will return the N-byte message digest into the
- *   Message_Digest array provided by the caller.
- *   NOTE: The first octet of hash is stored in the 0th element,
- *      the last octet of hash in the Nth element.
- *
- * Parameters:
- *   context: [in/out]
- *     The context to use to calculate the HMAC hash.
- *   digest: [out]
- *     Where the digest is returned.
- *   NOTE 2: The length of the hash is determined by the value of
- *      whichSha that was passed to hmacReset().
- *
- * Returns:
- *   sha Error Code.
- *
- */
-__device__ int hmacResult(HMACContext* ctx, uint8_t* digest) {
-    if (!ctx)
-        return shaNull;
+               /* perform outer SHA */
+               /* init context for 2nd pass */
+               USHAReset(&ctx->shaContext, ctx->whichSha) ||
 
-    /* finish up 1st pass */
-    /* (Use digest here as a temporary buffer.) */
-    return USHAResult(&ctx->shaContext, digest) ||
+               /* start with outer pad */
+               USHAInput(&ctx->shaContext, ctx->k_opad, ctx->blockSize) ||
 
-           /* perform outer SHA */
-           /* init context for 2nd pass */
-           USHAReset(&ctx->shaContext, ctx->whichSha) ||
+               /* then results of 1st hash */
+               USHAInput(&ctx->shaContext, digest, ctx->hashSize) ||
 
-           /* start with outer pad */
-           USHAInput(&ctx->shaContext, ctx->k_opad, ctx->blockSize) ||
+               /* finish up 2nd pass */
+               USHAResult(&ctx->shaContext, digest);
+    }
 
-           /* then results of 1st hash */
-           USHAInput(&ctx->shaContext, digest, ctx->hashSize) ||
+    __device__ void hmac_sha1(const unsigned char* text, int text_len, const unsigned char* key, int key_len, uint8_t digest[USHAMaxHashSize])
+    {
+        HMACContext ctx;
+        hmacReset(&ctx, SHA1, key, key_len) || hmacInput(&ctx, text, text_len) ||
+        hmacResult(&ctx, digest);
+    }
 
-           /* finish up 2nd pass */
-           USHAResult(&ctx->shaContext, digest);
+    __device__ void hmac_sha224(const unsigned char* text, int text_len, const unsigned char* key, int key_len, uint8_t digest[USHAMaxHashSize])
+    {
+        HMACContext ctx;
+        hmacReset(&ctx, SHA224, key, key_len) || hmacInput(&ctx, text, text_len) ||
+        hmacResult(&ctx, digest);
+    }
+
+    __device__ void hmac_sha256(const unsigned char* text, int text_len, const unsigned char* key, int key_len, uint8_t digest[USHAMaxHashSize])
+    {
+        HMACContext ctx;
+        hmacReset(&ctx, SHA256, key, key_len) || hmacInput(&ctx, text, text_len) || hmacResult(&ctx, digest);
+    }
+
+    __device__ void hmac_sha384(const unsigned char* text, int text_len, const unsigned char* key, int key_len, uint8_t digest[USHAMaxHashSize])
+    {
+        HMACContext ctx;
+        hmacReset(&ctx, SHA384, key, key_len) || hmacInput(&ctx, text, text_len) || hmacResult(&ctx, digest);
+    }
+
+    __device__ void hmac_sha512(const unsigned char* text, int text_len, const unsigned char* key, int key_len, uint8_t digest[USHAMaxHashSize])
+    {
+        HMACContext ctx;
+        hmacReset(&ctx, SHA512, key, key_len) || hmacInput(&ctx, text, text_len) || hmacResult(&ctx, digest);
+    }
+
+    __global__ void global_hmac_sha1(const unsigned char* text, int text_len, const unsigned char* key, int key_len, uint8_t digest[USHAMaxHashSize])
+    {
+        hmac_sha1(text, text_len, key, key_len, digest);
+    }
+
+    __global__ void global_hmac_sha224(const unsigned char* text, int text_len, const unsigned char* key, int key_len, uint8_t digest[USHAMaxHashSize])
+    {
+        hmac_sha224(text, text_len, key, key_len, digest);
+    }
+
+    __global__ void global_hmac_sha256(const unsigned char* text, int text_len, const unsigned char* key, int key_len, uint8_t digest[USHAMaxHashSize])
+    {
+        hmac_sha256(text, text_len, key, key_len, digest);
+    }
+
+    __global__ void global_hmac_sha384(const unsigned char* text, int text_len, const unsigned char* key, int key_len, uint8_t digest[USHAMaxHashSize])
+    {
+        hmac_sha384(text, text_len, key, key_len, digest);
+    }
+
+    __global__ void global_hmac_sha512(const unsigned char* text, int text_len, const unsigned char* key, int key_len, uint8_t digest[USHAMaxHashSize])
+    {
+        hmac_sha512(text, text_len, key, key_len, digest);
+    }
 }
